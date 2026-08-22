@@ -3,11 +3,11 @@ const app = require("../src/app");
 const prisma = require("../src/config/prisma");
 
 describe("POST /api/vehicles", () => {
-  it("should add a vehicle for an authenticated user", async () => {
+  it("should create a new vehicle successfully", async () => {
     const email = `vehicle${Date.now()}@example.com`;
     const password = "password123";
 
-    // Register user
+    // Register a user
     const registerResponse = await request(app)
       .post("/api/auth/register")
       .send({
@@ -16,7 +16,9 @@ describe("POST /api/vehicles", () => {
         password,
       });
 
-    // Login user
+    expect(registerResponse.statusCode).toBe(201);
+
+    // Login to get JWT token
     const loginResponse = await request(app)
       .post("/api/auth/login")
       .send({
@@ -24,20 +26,37 @@ describe("POST /api/vehicles", () => {
         password,
       });
 
+    expect(loginResponse.statusCode).toBe(200);
+
     const token = loginResponse.body.token;
 
-    // Add vehicle
+    // Create vehicle
     const response = await request(app)
       .post("/api/vehicles")
       .set("Authorization", `Bearer ${token}`)
       .send({
-        brand: "Honda",
-        model: "City",
-        year: 2022,
-        mileage: 15000,
-        fuelType: "Petrol",
+        make: "Toyota",
+        model: "Camry",
+        category: "Sedan",
+        price: 25000,
+        quantity: 5,
       });
 
+    // Expected result
+    expect(response.statusCode).toBe(201);
+
+    expect(response.body).toMatchObject({
+      message: "Vehicle added successfully",
+      vehicle: {
+        make: "Toyota",
+        model: "Camry",
+        category: "Sedan",
+        price: 25000,
+        quantity: 5,
+      },
+    });
+
+    expect(response.body.vehicle.id).toBeDefined();
     // Assertions
     expect(registerResponse.statusCode).toBe(201);
     expect(loginResponse.statusCode).toBe(200);
