@@ -1,61 +1,35 @@
-const request = require("supertest");
-const app = require("../src/app");
+const express = require("express");
+const prisma = require("../config/prisma");
+const authenticateToken = require("../middleware/auth.middleware");
 
-describe("POST /api/vehicles", () => {
-  it("should add a vehicle for an authenticated user", async () => {
-    const email = `vehicle${Date.now()}@example.com`;
-    const password = "password123";
+const router = express.Router();
 
-    // Register user
-    const registerResponse = await request(app)
-      .post("/api/auth/register")
-      .send({
-        name: "Vehicle Test User",
-        email,
-        password,
-      });
+router.post("/", authenticateToken, async (req, res) => {
+  try {
+    const { brand, model, year, mileage, fuelType } = req.body;
 
-    // Login user and get JWT token
-    const loginResponse = await request(app)
-      .post("/api/auth/login")
-      .send({
-        email,
-        password,
-      });
-
-    const token = loginResponse.body.token;
-
-    // Try to add vehicle
-    const response = await request(app)
-      .post("/api/vehicles")
-      .set("Authorization", `Bearer ${token}`)
-      .send({
-        brand: "Honda",
-        model: "City",
-        year: 2022,
-        mileage: 15000,
-        fuelType: "Petrol",
-      });
-
-    expect(registerResponse.statusCode).toBe(201);
-    expect(loginResponse.statusCode).toBe(200);
-
-    expect(response.statusCode).toBe(201);
-
-    expect(response.body).toMatchObject({
-      message: "Vehicle added successfully",
-      vehicle: {
-        brand: "Honda",
-        model: "City",
-        year: 2022,
-        mileage: 15000,
-        fuelType: "Petrol",
+    const vehicle = await prisma.vehicle.create({
+      data: {
+        brand,
+        model,
+        year: Number(year),
+        mileage: Number(mileage),
+        fuelType,
+        userId: req.user.id,
       },
     });
-  });
-});
-const prisma = require("../src/config/prisma");
 
-afterAll(async () => {
-  await prisma.$disconnect();
+    return res.status(201).json({
+      message: "Vehicle added successfully",
+      vehicle,
+    });
+  } catch (error) {
+    console.error("Vehicle creation error:", error);
+
+    return res.status(500).json({
+      message: "Failed to add vehicle",
+    });
+  }
 });
+
+module.exports = router;
