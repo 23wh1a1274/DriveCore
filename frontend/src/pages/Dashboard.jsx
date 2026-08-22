@@ -155,6 +155,12 @@ const handleVehicleSubmit = async (e) => {
         Welcome, {user?.name || "User"}!
       </h2>
 
+      <button onClick={() => navigate("/reminders")}>
+        Service Reminders 🔔
+      </button>
+
+      {" "}
+
       <button onClick={handleLogout}>
         Logout
       </button>

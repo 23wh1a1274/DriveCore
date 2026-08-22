@@ -3,6 +3,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import VehicleDetails from "./pages/VehicleDetails";
+import Reminders from "./pages/Reminders";  
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/vehicles/:id" element={<VehicleDetails />} />
         <Route path="/" element={<Navigate to="/login" />} />
+        <Route path="/reminders" element={<Reminders />} />
       </Routes>
     </BrowserRouter>
   );
