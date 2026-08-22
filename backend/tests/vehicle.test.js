@@ -231,6 +231,71 @@ describe("GET /api/vehicles/:id/services", () => {
   });
 });
 
+describe("PUT /api/vehicles/:id", () => {
+  it("should update a vehicle for the authenticated user", async () => {
+    const email = `update${Date.now()}@example.com`;
+    const password = "password123";
+
+    // Register
+    await request(app)
+      .post("/api/auth/register")
+      .send({
+        name: "Update Vehicle User",
+        email,
+        password,
+      });
+
+    // Login
+    const loginResponse = await request(app)
+      .post("/api/auth/login")
+      .send({
+        email,
+        password,
+      });
+
+    const token = loginResponse.body.token;
+
+    // Create vehicle
+    const vehicleResponse = await request(app)
+      .post("/api/vehicles")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        brand: "Honda",
+        model: "City",
+        year: 2022,
+        mileage: 15000,
+        fuelType: "Petrol",
+      });
+
+    const vehicleId = vehicleResponse.body.vehicle.id;
+
+    // Update vehicle
+    const response = await request(app)
+      .put(`/api/vehicles/${vehicleId}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        brand: "Honda",
+        model: "City ZX",
+        year: 2023,
+        mileage: 18000,
+        fuelType: "Petrol",
+      });
+
+    expect(response.statusCode).toBe(200);
+
+    expect(response.body).toMatchObject({
+      message: "Vehicle updated successfully",
+      vehicle: {
+        brand: "Honda",
+        model: "City ZX",
+        year: 2023,
+        mileage: 18000,
+        fuelType: "Petrol",
+      },
+    });
+  });
+});
+
 afterAll(async () => {
   await prisma.$disconnect();
 });
