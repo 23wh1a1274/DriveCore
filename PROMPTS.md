@@ -44,3 +44,14 @@ Delete Vehicle:
 
  Frontend Setup with React-
     prompt:"Help me quickly create a React frontend using Vite and connect it to my existing backend APIs. I want to build pages for user authentication, vehicle management, service records, service history, and service reminders."
+
+
+Frontend:
+- Create or update the VehicleDetails page.
+- Fetch and display the selected vehicle details.
+- Add a form to create a new service record.
+- Include fields for service type, description, service date, next service date, and cost.
+- Display the service history below the form.
+- Show a success message after adding a service record.
+- Refresh the service history after a new record is added.
+- Ensure only authenticated users can access their vehicle data.
