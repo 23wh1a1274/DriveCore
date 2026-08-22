@@ -8,7 +8,7 @@ describe("POST /api/auth/register", () => {
     const userData = {
       name: "Tanishqa",
       email: email,
-      password: "password123"
+      password: "password123",
     };
 
     const response = await request(app)
@@ -22,28 +22,26 @@ describe("POST /api/auth/register", () => {
       user: {
         name: "Tanishqa",
         email: email,
-        role: "USER"
-      }
+        role: "USER",
+      },
     });
 
     expect(response.body.user.id).toBeDefined();
   });
 
   it("should not register a user with an existing email", async () => {
-    const userData = {
-      name: "Another User",
-      email: email,
-      password: "password123"
-    };
-
     const response = await request(app)
       .post("/api/auth/register")
-      .send(userData);
+      .send({
+        name: "Another User",
+        email: email,
+        password: "password123",
+      });
 
     expect(response.statusCode).toBe(409);
 
     expect(response.body).toEqual({
-      message: "Email already registered"
+      message: "Email already registered",
     });
   });
 });
@@ -53,7 +51,6 @@ describe("POST /api/auth/login", () => {
     const email = `login${Date.now()}@example.com`;
     const password = "password123";
 
-    // First register the user
     await request(app)
       .post("/api/auth/register")
       .send({
@@ -62,7 +59,6 @@ describe("POST /api/auth/login", () => {
         password,
       });
 
-    // Then try logging in
     const response = await request(app)
       .post("/api/auth/login")
       .send({
