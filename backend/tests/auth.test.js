@@ -81,6 +81,47 @@ describe("POST /api/auth/login", () => {
       role: "USER",
     });
   });
+
+  it("should not login with an incorrect password", async () => {
+  const email = `wrongpassword${Date.now()}@example.com`;
+
+  // First register a user
+  await request(app)
+    .post("/api/auth/register")
+    .send({
+      name: "Wrong Password User",
+      email,
+      password: "correctpassword123",
+    });
+
+  // Try logging in with the wrong password
+  const response = await request(app)
+    .post("/api/auth/login")
+    .send({
+      email,
+      password: "wrongpassword123",
+    });
+
+  expect(response.statusCode).toBe(401);
+
+  expect(response.body).toEqual({
+    message: "Invalid email or password",
+  });
+});
+});
+it("should not login with a non-existent email", async () => {
+  const response = await request(app)
+    .post("/api/auth/login")
+    .send({
+      email: `nonexistent${Date.now()}@example.com`,
+      password: "password123",
+    });
+
+  expect(response.statusCode).toBe(401);
+
+  expect(response.body).toEqual({
+    message: "Invalid email or password",
+  });
 });
 const prisma = require("../src/config/prisma");
 

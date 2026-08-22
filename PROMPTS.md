@@ -12,3 +12,8 @@ PS C:\Users\tanis\OneDrive\Desktop\DriveCore\backend> npm -v
 10.5.0
 PS C:\Users\tanis\OneDrive\Desktop\DriveCore\backend> this is the error soleve and tell me why it has come"
 
+6.Login:
+    prompt-""I have implemented user login with JWT authentication, and the successful login test is passing. What should I test next to make the authentication functionality more robust?"
+
+    "I have tested successful login and incorrect password handling. What is another important authentication test case I should add?"
+
