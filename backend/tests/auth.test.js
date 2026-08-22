@@ -47,3 +47,42 @@ describe("POST /api/auth/register", () => {
     });
   });
 });
+
+describe("POST /api/auth/login", () => {
+  it("should login successfully with valid credentials", async () => {
+    const email = `login${Date.now()}@example.com`;
+    const password = "password123";
+
+    // First register the user
+    await request(app)
+      .post("/api/auth/register")
+      .send({
+        name: "Login Test User",
+        email,
+        password,
+      });
+
+    // Then try logging in
+    const response = await request(app)
+      .post("/api/auth/login")
+      .send({
+        email,
+        password,
+      });
+
+    expect(response.statusCode).toBe(200);
+
+    expect(response.body).toHaveProperty(
+      "message",
+      "Login successful"
+    );
+
+    expect(response.body).toHaveProperty("token");
+
+    expect(response.body.user).toMatchObject({
+      name: "Login Test User",
+      email,
+      role: "USER",
+    });
+  });
+});
