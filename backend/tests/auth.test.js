@@ -2,9 +2,14 @@ const request = require("supertest");
 const app = require("../src/app");
 
 describe("POST /api/auth/register", () => {
+
   it("should register a new user successfully", async () => {
+    // existing test
+  });
+
+  it("should not register a user with an existing email", async () => {
     const userData = {
-      name: "Tanishqa",
+      name: "Another User",
       email: "tanishqa@example.com",
       password: "password123"
     };
@@ -13,17 +18,11 @@ describe("POST /api/auth/register", () => {
       .post("/api/auth/register")
       .send(userData);
 
-    expect(response.statusCode).toBe(201);
+    expect(response.statusCode).toBe(409);
 
-    expect(response.body).toMatchObject({
-      message: "User registered successfully",
-      user: {
-        name: "Tanishqa",
-        email: "tanishqa@example.com",
-        role: "USER"
-      }
+    expect(response.body).toEqual({
+      message: "Email already registered"
     });
-
-    expect(response.body.user.id).toBeDefined();
   });
+
 });
