@@ -39,13 +39,14 @@ model Vehicle {
 }
 
 model ServiceRecord {
-  id          Int      @id @default(autoincrement())
-  serviceType String
-  description String?
-  serviceDate DateTime
-  cost        Float
-  createdAt   DateTime @default(now())
+  id              Int       @id @default(autoincrement())
+  serviceType     String
+  description     String?
+  serviceDate     DateTime
+  nextServiceDate DateTime?
+  cost            Float
+  createdAt       DateTime  @default(now())
 
-  vehicleId Int
-  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  vehicleId       Int
+  vehicle         Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 }
