@@ -17,3 +17,30 @@ PS C:\Users\tanis\OneDrive\Desktop\DriveCore\backend> this is the error soleve a
 
     "I have tested successful login and incorrect password handling. What is another important authentication test case I should add?"
 
+Middleware:
+    prompt:"let's implement the authentication middleware and then immediately start the actual DriveCore core feature."
+Vehicle Creation:
+    prompt-"My DriveCore application needs a vehicle management feature. Help me follow TDD by first writing a failing Jest and Supertest test for POST /api/vehicles. An authenticated user should be able to add a vehicle with brand, model, year, mileage, and fuelType. After the RED test fails, provide the minimum implementation required to make the test pass"
+
+User Vehicles:
+    prompt:"Help me quickly follow TDD for retrieving vehicles in my DriveCore application. First write a failing Jest and Supertest test for GET /api/vehicles. The endpoint should require authentication and return only the vehicles belonging to the logged-in user. Then provide the minimum implementation needed to make the test pass"
+
+Vehicle Service Records:
+    prompt-"My DriveCore application can create and retrieve vehicles. Help me add vehicle service and maintenance records using a quick TDD approach. First write a failing Jest and Supertest test for POST /api/vehicles/:id/services. The authenticated user should only be able to add a service record to their own vehicle. After the test fails, provide the minimum Prisma schema and Express implementation needed to make it pass."
+
+    "A ServiceRecord model was added with a relationship to Vehicle. A test was created for adding a service record to an authenticated user's vehicle. The protected API endpoint was then implemented using Prisma"
+
+Vehicle Service History:
+    prompt-"I have already implemented adding service records to a vehicle in my DriveCore backend. I now want to add a feature that allows an authenticated user to view the complete service history of their own vehicle. Help me follow TDD by writing the test first, then implementing only the required Express and Prisma code to make the test pass."
+
+Service Reminders:
+    prompts:""I want to add a service reminder feature to my DriveCore backend. An authenticated user should be able to view upcoming vehicle services based on the nextServiceDate stored in service records. test for GET /api/reminders and then implementing the minimum Express and Prisma code required to make the test pass."
+
+Update Vehicle:
+    prompt-"I want to add an update feature to my DriveCore backend. An authenticated user should be able to update only their own vehicle details. Help me follow TDD by first writing a failing test for PUT /api/vehicles/:id, and then provide the minimum Express and Prisma implementation required to make the test pass."
+
+Delete Vehicle:
+    prompt:"I want to complete the vehicle CRUD operations in my DriveCore backend by adding a delete feature. An authenticated user should only be able to delete their own vehicle. Help me follow TDD by first writing a failing test for DELETE /api/vehicles/:id and then implementing the minimum Express and Prisma code required to make the test pass."
+
+ Frontend Setup with React-
+    prompt:"Help me quickly create a React frontend using Vite and connect it to my existing backend APIs. I want to build pages for user authentication, vehicle management, service records, service history, and service reminders."
