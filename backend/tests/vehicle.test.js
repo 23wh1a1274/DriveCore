@@ -294,6 +294,58 @@ describe("PUT /api/vehicles/:id", () => {
       },
     });
   });
+
+});
+
+describe("DELETE /api/vehicles/:id", () => {
+  it("should delete a vehicle for the authenticated user", async () => {
+    const email = `delete${Date.now()}@example.com`;
+    const password = "password123";
+
+    // Register
+    await request(app)
+      .post("/api/auth/register")
+      .send({
+        name: "Delete Vehicle User",
+        email,
+        password,
+      });
+
+    // Login
+    const loginResponse = await request(app)
+      .post("/api/auth/login")
+      .send({
+        email,
+        password,
+      });
+
+    const token = loginResponse.body.token;
+
+    // Create vehicle
+    const vehicleResponse = await request(app)
+      .post("/api/vehicles")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        brand: "Hyundai",
+        model: "Creta",
+        year: 2023,
+        mileage: 10000,
+        fuelType: "Petrol",
+      });
+
+    const vehicleId = vehicleResponse.body.vehicle.id;
+
+    // Delete vehicle
+    const response = await request(app)
+      .delete(`/api/vehicles/${vehicleId}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.statusCode).toBe(200);
+
+    expect(response.body).toEqual({
+      message: "Vehicle deleted successfully",
+    });
+  });
 });
 
 afterAll(async () => {
