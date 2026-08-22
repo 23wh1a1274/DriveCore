@@ -32,4 +32,27 @@ router.post("/", authenticateToken, async (req, res) => {
   }
 });
 
+router.get("/", authenticateToken, async (req, res) => {
+  try {
+    const vehicles = await prisma.vehicle.findMany({
+      where: {
+        userId: req.user.id,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return res.status(200).json({
+      vehicles,
+    });
+  } catch (error) {
+    console.error("Fetch vehicles error:", error);
+
+    return res.status(500).json({
+      message: "Failed to fetch vehicles",
+    });
+  }
+});
+
 module.exports = router;
