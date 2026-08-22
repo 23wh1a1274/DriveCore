@@ -107,6 +107,66 @@ describe("GET /api/vehicles", () => {
   });
 });
 
+describe("POST /api/vehicles/:id/services", () => {
+  it("should add a service record to a vehicle", async () => {
+    const email = `service${Date.now()}@example.com`;
+    const password = "password123";
+
+    await request(app)
+      .post("/api/auth/register")
+      .send({
+        name: "Service Test User",
+        email,
+        password,
+      });
+
+    const loginResponse = await request(app)
+      .post("/api/auth/login")
+      .send({
+        email,
+        password,
+      });
+
+    const token = loginResponse.body.token;
+
+    // Create a vehicle first
+    const vehicleResponse = await request(app)
+      .post("/api/vehicles")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        brand: "Honda",
+        model: "City",
+        year: 2022,
+        mileage: 15000,
+        fuelType: "Petrol",
+      });
+
+    const vehicleId = vehicleResponse.body.vehicle.id;
+
+    // Add service record
+    const response = await request(app)
+      .post(`/api/vehicles/${vehicleId}/services`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        serviceType: "Oil Change",
+        description: "Engine oil and filter replaced",
+        serviceDate: "2026-08-22",
+        cost: 2500,
+      });
+
+    expect(response.statusCode).toBe(201);
+
+    expect(response.body).toMatchObject({
+      message: "Service record added successfully",
+      serviceRecord: {
+        serviceType: "Oil Change",
+        description: "Engine oil and filter replaced",
+        cost: 2500,
+      },
+    });
+  });
+});
+
 afterAll(async () => {
   await prisma.$disconnect();
 });

@@ -55,4 +55,52 @@ router.get("/", authenticateToken, async (req, res) => {
   }
 });
 
+router.post("/:id/services", authenticateToken, async (req, res) => {
+  try {
+    const vehicleId = Number(req.params.id);
+
+    // Check that the vehicle belongs to the logged-in user
+    const vehicle = await prisma.vehicle.findFirst({
+      where: {
+        id: vehicleId,
+        userId: req.user.id,
+      },
+    });
+
+    if (!vehicle) {
+      return res.status(404).json({
+        message: "Vehicle not found",
+      });
+    }
+
+    const {
+      serviceType,
+      description,
+      serviceDate,
+      cost,
+    } = req.body;
+
+    const serviceRecord = await prisma.serviceRecord.create({
+      data: {
+        serviceType,
+        description,
+        serviceDate: new Date(serviceDate),
+        cost: Number(cost),
+        vehicleId,
+      },
+    });
+
+    return res.status(201).json({
+      message: "Service record added successfully",
+      serviceRecord,
+    });
+  } catch (error) {
+    console.error("Service record creation error:", error);
+
+    return res.status(500).json({
+      message: "Failed to add service record",
+    });
+  }
+});
+
 module.exports = router;
