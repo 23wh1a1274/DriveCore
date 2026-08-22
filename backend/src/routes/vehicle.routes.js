@@ -103,4 +103,43 @@ router.post("/:id/services", authenticateToken, async (req, res) => {
   }
 });
 
+router.get("/:id/services", authenticateToken, async (req, res) => {
+  try {
+    const vehicleId = Number(req.params.id);
+
+    // Check whether the vehicle belongs to the logged-in user
+    const vehicle = await prisma.vehicle.findFirst({
+      where: {
+        id: vehicleId,
+        userId: req.user.id,
+      },
+    });
+
+    if (!vehicle) {
+      return res.status(404).json({
+        message: "Vehicle not found",
+      });
+    }
+
+    const serviceRecords = await prisma.serviceRecord.findMany({
+      where: {
+        vehicleId,
+      },
+      orderBy: {
+        serviceDate: "desc",
+      },
+    });
+
+    return res.status(200).json({
+      serviceRecords,
+    });
+  } catch (error) {
+    console.error("Fetch service history error:", error);
+
+    return res.status(500).json({
+      message: "Failed to fetch service history",
+    });
+  }
+});
+
 module.exports = router;

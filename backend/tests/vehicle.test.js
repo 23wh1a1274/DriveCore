@@ -167,6 +167,70 @@ describe("POST /api/vehicles/:id/services", () => {
   });
 });
 
+describe("GET /api/vehicles/:id/services", () => {
+  it("should return service records for a vehicle", async () => {
+    const email = `history${Date.now()}@example.com`;
+    const password = "password123";
+
+    // Register
+    await request(app)
+      .post("/api/auth/register")
+      .send({
+        name: "Service History User",
+        email,
+        password,
+      });
+
+    // Login
+    const loginResponse = await request(app)
+      .post("/api/auth/login")
+      .send({
+        email,
+        password,
+      });
+
+    const token = loginResponse.body.token;
+
+    // Create vehicle
+    const vehicleResponse = await request(app)
+      .post("/api/vehicles")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        brand: "Hyundai",
+        model: "Creta",
+        year: 2023,
+        mileage: 10000,
+        fuelType: "Petrol",
+      });
+
+    const vehicleId = vehicleResponse.body.vehicle.id;
+
+    // Add a service record
+    await request(app)
+      .post(`/api/vehicles/${vehicleId}/services`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        serviceType: "General Service",
+        description: "Regular maintenance",
+        serviceDate: "2026-08-22",
+        cost: 3000,
+      });
+
+    // Get service history
+    const response = await request(app)
+      .get(`/api/vehicles/${vehicleId}/services`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.statusCode).toBe(200);
+
+    expect(response.body).toHaveProperty("serviceRecords");
+
+    expect(Array.isArray(response.body.serviceRecords)).toBe(true);
+
+    expect(response.body.serviceRecords.length).toBeGreaterThan(0);
+  });
+});
+
 afterAll(async () => {
   await prisma.$disconnect();
 });
