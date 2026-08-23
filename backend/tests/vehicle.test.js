@@ -460,6 +460,97 @@ describe("POST /api/vehicles/:id/purchase - out of stock", () => {
   });
 });
 
+describe("POST /api/vehicles/:id/restock - admin authorization", () => {
+  it("should not allow a normal user to restock a vehicle", async () => {
+    const timestamp = Date.now();
+    const password = "password123";
+
+    const adminEmail = `admin${timestamp}@example.com`;
+    const userEmail = `normaluser${timestamp}@example.com`;
+
+    // Register admin user
+    await request(app)
+      .post("/api/auth/register")
+      .send({
+        name: "Admin User",
+        email: adminEmail,
+        password,
+      });
+
+    const admin = await prisma.user.findUnique({
+        where: {
+          email: adminEmail,
+        },
+      });
+
+      await prisma.user.update({
+        where: {
+          id: admin.id,
+        },
+        data: {
+          role: "ADMIN",
+        },
+      });
+
+    // Register normal user
+    await request(app)
+      .post("/api/auth/register")
+      .send({
+        name: "Normal User",
+        email: userEmail,
+        password,
+      });
+
+    // Login as admin
+    const adminLogin = await request(app)
+      .post("/api/auth/login")
+      .send({
+        email: adminEmail,
+        password,
+      });
+
+    const adminToken = adminLogin.body.token;
+
+    // Create a vehicle
+    const vehicleResponse = await request(app)
+      .post("/api/vehicles")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        make: "Toyota",
+        model: "Fortuner",
+        category: "SUV",
+        price: 50000,
+        quantity: 5,
+      });
+
+    const vehicleId = vehicleResponse.body.vehicle.id;
+
+    // Login as normal user
+    const userLogin = await request(app)
+      .post("/api/auth/login")
+      .send({
+        email: userEmail,
+        password,
+      });
+
+    const userToken = userLogin.body.token;
+
+    // Normal user attempts to restock
+    const response = await request(app)
+      .post(`/api/vehicles/${vehicleId}/restock`)
+      .set("Authorization", `Bearer ${userToken}`)
+      .send({
+        quantity: 5,
+      });
+
+    expect(response.statusCode).toBe(403);
+
+    expect(response.body).toEqual({
+      message: "Admin access required",
+    });
+  });
+});
+
 afterAll(async () => {
   await prisma.$disconnect();
 });
