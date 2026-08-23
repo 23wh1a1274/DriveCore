@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { Pencil, Trash2 } from "lucide-react";
 
 function Dashboard() {
   const [vehicles, setVehicles] = useState([]);
@@ -26,6 +27,9 @@ function Dashboard() {
   const [searchCategory, setSearchCategory] = useState("");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+
+  const [restockVehicle, setRestockVehicle] = useState(null);
+const [restockQuantity, setRestockQuantity] = useState("");
 
   const navigate = useNavigate();
 
@@ -245,6 +249,64 @@ const handleEdit = (vehicle) => {
       );
     }
   };
+
+  const handlePurchase = async (id) => {
+  try {
+    const response = await axios.post(
+      `${API_URL}/vehicles/${id}/purchase`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    alert(response.data.message);
+
+    fetchVehicles();
+  } catch (error) {
+    alert(
+      error.response?.data?.message ||
+        "Failed to purchase vehicle"
+    );
+  }
+};
+
+  const handleRestock = async (e) => {
+  e.preventDefault();
+
+  if (!restockQuantity || Number(restockQuantity) <= 0) {
+    alert("Please enter a valid quantity");
+    return;
+  }
+
+  try {
+    const response = await axios.post(
+      `${API_URL}/vehicles/${restockVehicle.id}/restock`,
+      {
+        quantity: Number(restockQuantity),
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    alert(response.data.message);
+
+    setRestockVehicle(null);
+    setRestockQuantity("");
+
+    fetchVehicles();
+  } catch (error) {
+    alert(
+      error.response?.data?.message ||
+        "Failed to restock vehicle"
+    );
+  }
+};
 
   const handleAskAI = async (question = aiMessage) => {
   if (!question.trim() || aiLoading) return;
@@ -856,20 +918,57 @@ const lowStockVehicles = vehicles.filter(
                         </button>
 
 
-                        <button
-                          onClick={() => handleEdit(vehicle)}
-                          className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-gray-400 transition hover:border-white/20 hover:bg-white/10 hover:text-white"
-                        >
-                          Edit
-                        </button>
 
+                          <button
+                            onClick={() => handlePurchase(vehicle.id)}
+                            disabled={Number(vehicle.quantity) === 0}
+                            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+                              Number(vehicle.quantity) === 0
+                                ? "cursor-not-allowed bg-gray-700 text-gray-400"
+                                : "bg-red-600 text-white hover:bg-red-500"
+                            }`}
+                          >
+                            {Number(vehicle.quantity) === 0
+                              ? "Out of Stock"
+                              : "Purchase"}
+                          </button>
 
-                        <button
-                          onClick={() => handleDelete(vehicle.id)}
-                          className="rounded-lg border border-red-500/20 px-4 py-2.5 text-sm text-red-400 transition hover:bg-red-500 hover:text-white"
-                        >
-                          Delete
-                        </button>
+                              
+                          <button
+                            onClick={() => handleEdit(vehicle)}
+                            title="Edit Vehicle"
+                            className="
+                              flex h-10 w-10 items-center justify-center
+                              rounded-lg
+                              border border-white/10
+                              bg-white/5
+                              text-gray-400
+                              transition
+                              hover:border-blue-400/40
+                              hover:bg-blue-500/10
+                              hover:text-blue-400
+                            "
+                          >
+                            <Pencil size={17} />
+                          </button>
+
+                            <button
+                              onClick={() => handleDelete(vehicle.id)}
+                              title="Delete Vehicle"
+                              className="
+                                flex h-10 w-10 items-center justify-center
+                                rounded-lg
+                                border border-white/10
+                                bg-white/5
+                                text-gray-400
+                                transition
+                                hover:border-red-400/40
+                                hover:bg-red-500/10
+                                hover:text-red-400
+                              "
+                            >
+                              <Trash2 size={17} />
+                            </button>
 
                       </div>
 
@@ -1380,6 +1479,74 @@ const lowStockVehicles = vehicles.filter(
       </div>
 
     </div>
+  </div>
+)}
+{restockVehicle && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
+
+    <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#111827] p-6 shadow-2xl">
+
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-white">
+          Restock Vehicle
+        </h2>
+
+        <p className="mt-2 text-sm text-gray-400">
+          Add stock for{" "}
+          <span className="font-medium text-white">
+            {restockVehicle.make} {restockVehicle.model}
+          </span>
+        </p>
+
+        <p className="mt-1 text-sm text-gray-500">
+          Current quantity: {restockVehicle.quantity}
+        </p>
+      </div>
+
+      <form onSubmit={handleRestock}>
+
+        <label className="mb-2 block text-sm font-medium text-gray-300">
+          Quantity to Add
+        </label>
+
+        <input
+          type="number"
+          min="1"
+          value={restockQuantity}
+          onChange={(e) =>
+            setRestockQuantity(e.target.value)
+          }
+          placeholder="Enter quantity"
+          className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-white outline-none transition placeholder:text-gray-500 focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20"
+          required
+        />
+
+        <div className="mt-6 flex justify-end gap-3">
+
+          <button
+            type="button"
+            onClick={() => {
+              setRestockVehicle(null);
+              setRestockQuantity("");
+            }}
+            className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-gray-300 transition hover:bg-white/5"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            className="rounded-lg bg-red-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-red-500"
+          >
+            Restock Vehicle
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+
   </div>
 )}
     </div>
