@@ -79,3 +79,5 @@ Frontend:
 - Admin deletion
 
 I want to remove the old service and reminder features because they are not part of the Car Dealership Inventory System requirements.
+
+Help me update App.jsx so that the SPA only contains the routes required for the Car Dealership Inventory System.
