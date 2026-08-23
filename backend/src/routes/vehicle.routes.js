@@ -328,5 +328,43 @@ router.post(
   }
 );
 
+router.delete(
+  "/:id",
+  authenticateToken,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const vehicleId = Number(req.params.id);
+
+      const vehicle = await prisma.vehicle.findUnique({
+        where: {
+          id: vehicleId,
+        },
+      });
+
+      if (!vehicle) {
+        return res.status(404).json({
+          message: "Vehicle not found",
+        });
+      }
+
+      await prisma.vehicle.delete({
+        where: {
+          id: vehicleId,
+        },
+      });
+
+      return res.status(200).json({
+        message: "Vehicle deleted successfully",
+      });
+    } catch (error) {
+      console.error("Vehicle deletion error:", error);
+
+      return res.status(500).json({
+        message: "Failed to delete vehicle",
+      });
+    }
+  }
+);
 
 module.exports = router;
