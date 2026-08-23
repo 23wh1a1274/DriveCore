@@ -409,16 +409,16 @@ describe("GET /api/vehicles/search", () => {
   });
 });
 
-describe("POST /api/vehicles/:id/purchase", () => {
-  it("should purchase a vehicle and decrease its quantity", async () => {
-    const email = `purchase${Date.now()}@example.com`;
+describe("POST /api/vehicles/:id/purchase - out of stock", () => {
+  it("should not allow purchasing a vehicle when quantity is zero", async () => {
+    const email = `outofstock${Date.now()}@example.com`;
     const password = "password123";
 
-    // Register user
+    // Register
     await request(app)
       .post("/api/auth/register")
       .send({
-        name: "Purchase Test User",
+        name: "Out Of Stock User",
         email,
         password,
       });
@@ -433,33 +433,29 @@ describe("POST /api/vehicles/:id/purchase", () => {
 
     const token = loginResponse.body.token;
 
-    // Create vehicle with quantity 5
+    // Create an out-of-stock vehicle
     const vehicleResponse = await request(app)
       .post("/api/vehicles")
       .set("Authorization", `Bearer ${token}`)
       .send({
-        make: "Toyota",
-        model: "Fortuner",
-        category: "SUV",
-        price: 50000,
-        quantity: 5,
+        make: "Honda",
+        model: "Civic",
+        category: "Sedan",
+        price: 30000,
+        quantity: 0,
       });
 
     const vehicleId = vehicleResponse.body.vehicle.id;
 
-    // Purchase the vehicle
+    // Try to purchase it
     const response = await request(app)
       .post(`/api/vehicles/${vehicleId}/purchase`)
       .set("Authorization", `Bearer ${token}`);
 
-    expect(response.statusCode).toBe(200);
+    expect(response.statusCode).toBe(400);
 
-    expect(response.body).toMatchObject({
-      message: "Vehicle purchased successfully",
-      vehicle: {
-        id: vehicleId,
-        quantity: 4,
-      },
+    expect(response.body).toEqual({
+      message: "Vehicle is out of stock",
     });
   });
 });
