@@ -1,6 +1,7 @@
 const express = require("express");
 const prisma = require("../config/prisma");
 const authenticateToken = require("../middleware/auth.middleware");
+const requireAdmin = require("../middleware/admin.middleware");
 
 const router = express.Router();
 
@@ -280,6 +281,52 @@ router.delete("/:id", authenticateToken, async (req, res) => {
     });
   }
 });
+
+router.post(
+  "/:id/restock",
+  authenticateToken,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const vehicleId = Number(req.params.id);
+      const { quantity } = req.body;
+
+      const vehicle = await prisma.vehicle.findUnique({
+        where: {
+          id: vehicleId,
+        },
+      });
+
+      if (!vehicle) {
+        return res.status(404).json({
+          message: "Vehicle not found",
+        });
+      }
+
+      const updatedVehicle = await prisma.vehicle.update({
+        where: {
+          id: vehicleId,
+        },
+        data: {
+          quantity: {
+            increment: Number(quantity),
+          },
+        },
+      });
+
+      return res.status(200).json({
+        message: "Vehicle restocked successfully",
+        vehicle: updatedVehicle,
+      });
+    } catch (error) {
+      console.error("Vehicle restock error:", error);
+
+      return res.status(500).json({
+        message: "Failed to restock vehicle",
+      });
+    }
+  }
+);
 
 
 module.exports = router;
