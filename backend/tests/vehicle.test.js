@@ -337,6 +337,78 @@ describe("DELETE /api/vehicles/:id", () => {
   });
 });
 
+describe("GET /api/vehicles/search", () => {
+  it("should search vehicles by make", async () => {
+    const email = `search${Date.now()}@example.com`;
+    const password = "password123";
+
+    // Register user
+    await request(app)
+      .post("/api/auth/register")
+      .send({
+        name: "Search Test User",
+        email,
+        password,
+      });
+
+    // Login
+    const loginResponse = await request(app)
+      .post("/api/auth/login")
+      .send({
+        email,
+        password,
+      });
+
+    const token = loginResponse.body.token;
+
+    // Add Toyota
+    await request(app)
+      .post("/api/vehicles")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        make: "Toyota",
+        model: "Fortuner",
+        category: "SUV",
+        price: 50000,
+        quantity: 2,
+      });
+
+    // Add Honda
+    await request(app)
+      .post("/api/vehicles")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        make: "Honda",
+        model: "City",
+        category: "Sedan",
+        price: 25000,
+        quantity: 5,
+      });
+
+    // Search for Toyota
+    const response = await request(app)
+      .get("/api/vehicles/search?make=Toyota")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.statusCode).toBe(200);
+
+    expect(response.body.vehicles).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          make: "Toyota",
+          model: "Fortuner",
+        }),
+      ])
+    );
+
+    expect(
+      response.body.vehicles.every(
+        (vehicle) => vehicle.make.toLowerCase() === "toyota"
+      )
+    ).toBe(true);
+  });
+});
+
 afterAll(async () => {
   await prisma.$disconnect();
 });
