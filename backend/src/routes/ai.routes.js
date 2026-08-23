@@ -45,6 +45,8 @@ You have access to the following current inventory:
 
 ${JSON.stringify(inventoryData, null, 2)}
 
+
+
 Rules:
 - Answer only using the provided inventory data when the user asks about vehicles or inventory.
 - Do not invent vehicles, prices, quantities, or other inventory information.
