@@ -116,6 +116,55 @@ router.get("/search", authenticateToken, async (req, res) => {
   }
 });
 
+router.post("/:id/purchase", authenticateToken, async (req, res) => {
+  try {
+    const vehicleId = Number(req.params.id);
+
+    // Find the vehicle in dealership inventory
+    const vehicle = await prisma.vehicle.findUnique({
+      where: {
+        id: vehicleId,
+      },
+    });
+
+    if (!vehicle) {
+      return res.status(404).json({
+        message: "Vehicle not found",
+      });
+    }
+
+    // Prevent purchase when stock is empty
+    if (vehicle.quantity <= 0) {
+      return res.status(400).json({
+        message: "Vehicle is out of stock",
+      });
+    }
+
+    // Decrease quantity by 1
+    const updatedVehicle = await prisma.vehicle.update({
+      where: {
+        id: vehicleId,
+      },
+      data: {
+        quantity: {
+          decrement: 1,
+        },
+      },
+    });
+
+    return res.status(200).json({
+      message: "Vehicle purchased successfully",
+      vehicle: updatedVehicle,
+    });
+  } catch (error) {
+    console.error("Vehicle purchase error:", error);
+
+    return res.status(500).json({
+      message: "Failed to purchase vehicle",
+    });
+  }
+});
+
 router.get("/:id", authenticateToken, async (req, res) => {
   try {
     const vehicleId = Number(req.params.id);
