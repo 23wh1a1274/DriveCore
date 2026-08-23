@@ -55,3 +55,7 @@ Frontend:
 - Show a success message after adding a service record.
 - Refresh the service history after a new record is added.
 - Ensure only authenticated users can access their vehicle data.
+- Display statuses such as "Overdue by X days", "Due today", and "Due in X days".
+- Sort reminders by the nearest service date.
+- Add navigation from the Dashboard to the Service Reminders page.
+- Add a button to return to the Dashboard.

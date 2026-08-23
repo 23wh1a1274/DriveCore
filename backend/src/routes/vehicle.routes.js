@@ -6,15 +6,21 @@ const router = express.Router();
 
 router.post("/", authenticateToken, async (req, res) => {
   try {
-    const { brand, model, year, mileage, fuelType } = req.body;
+    const {
+      make,
+      model,
+      category,
+      price,
+      quantity,
+    } = req.body;
 
     const vehicle = await prisma.vehicle.create({
       data: {
-        brand,
+        make,
         model,
-        year: Number(year),
-        mileage: Number(mileage),
-        fuelType,
+        category,
+        price: Number(price),
+        quantity: Number(quantity),
         userId: req.user.id,
       },
     });
@@ -84,102 +90,10 @@ router.get("/:id", authenticateToken, async (req, res) => {
   }
 });
 
-router.post("/:id/services", authenticateToken, async (req, res) => {
-  try {
-    const vehicleId = Number(req.params.id);
-
-    // Check that the vehicle belongs to the logged-in user
-    const vehicle = await prisma.vehicle.findFirst({
-      where: {
-        id: vehicleId,
-        userId: req.user.id,
-      },
-    });
-
-    if (!vehicle) {
-      return res.status(404).json({
-        message: "Vehicle not found",
-      });
-    }
-
-    const {
-      serviceType,
-      description,
-      serviceDate,
-      nextServiceDate,
-      cost,
-    } = req.body;
-
-const serviceRecord = await prisma.serviceRecord.create({
-  data: {
-    serviceType,
-    description,
-    serviceDate: new Date(serviceDate),
-    nextServiceDate: nextServiceDate
-      ? new Date(nextServiceDate)
-      : null,
-    cost: Number(cost),
-    vehicleId,
-  },
-});
-
-    return res.status(201).json({
-      message: "Service record added successfully",
-      serviceRecord,
-    });
-  } catch (error) {
-    console.error("Service record creation error:", error);
-
-    return res.status(500).json({
-      message: "Failed to add service record",
-    });
-  }
-});
-
-router.get("/:id/services", authenticateToken, async (req, res) => {
-  try {
-    const vehicleId = Number(req.params.id);
-
-    // Check whether the vehicle belongs to the logged-in user
-    const vehicle = await prisma.vehicle.findFirst({
-      where: {
-        id: vehicleId,
-        userId: req.user.id,
-      },
-    });
-
-    if (!vehicle) {
-      return res.status(404).json({
-        message: "Vehicle not found",
-      });
-    }
-
-    const serviceRecords = await prisma.serviceRecord.findMany({
-      where: {
-        vehicleId,
-      },
-      orderBy: {
-        serviceDate: "desc",
-      },
-    });
-
-    return res.status(200).json({
-      serviceRecords,
-    });
-  } catch (error) {
-    console.error("Fetch service history error:", error);
-
-    return res.status(500).json({
-      message: "Failed to fetch service history",
-    });
-  }
-});
-
 router.put("/:id", authenticateToken, async (req, res) => {
   try {
     const vehicleId = Number(req.params.id);
 
-    // Check that the vehicle belongs to the logged-in user
     const vehicle = await prisma.vehicle.findFirst({
       where: {
         id: vehicleId,
@@ -194,11 +108,11 @@ router.put("/:id", authenticateToken, async (req, res) => {
     }
 
     const {
-      brand,
+      make,
       model,
-      year,
-      mileage,
-      fuelType,
+      category,
+      price,
+      quantity,
     } = req.body;
 
     const updatedVehicle = await prisma.vehicle.update({
@@ -206,11 +120,11 @@ router.put("/:id", authenticateToken, async (req, res) => {
         id: vehicleId,
       },
       data: {
-        brand,
+        make,
         model,
-        year: Number(year),
-        mileage: Number(mileage),
-        fuelType,
+        category,
+        price: Number(price),
+        quantity: Number(quantity),
       },
     });
 
