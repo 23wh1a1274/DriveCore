@@ -3,43 +3,43 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 function Dashboard() {
+  const [vehicles, setVehicles] = useState([]);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+
+  const [brand, setBrand] = useState("");
+  const [model, setModel] = useState("");
+  const [year, setYear] = useState("");
+  const [mileage, setMileage] = useState("");
+  const [fuelType, setFuelType] = useState("");
+
+  const [loading, setLoading] = useState(true);
+
   const navigate = useNavigate();
 
   const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user"));
+
+  let user = null;
+
+  try {
+    user = JSON.parse(localStorage.getItem("user"));
+  } catch {
+    user = null;
+  }
 
   const API_URL = "http://localhost:5000/api";
 
-  const [vehicles, setVehicles] = useState([]);
-  const [editingId, setEditingId] = useState(null);
-
-  // Vehicle form
-  const [make, setMake] = useState("");
-  const [model, setModel] = useState("");
-  const [category, setCategory] = useState("");
-  const [price, setPrice] = useState("");
-  const [quantity, setQuantity] = useState("");
-
-  // Search filters
-  const [searchMake, setSearchMake] = useState("");
-  const [searchModel, setSearchModel] = useState("");
-  const [searchCategory, setSearchCategory] = useState("");
-  const [minPrice, setMinPrice] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
-
-  const isAdmin = user?.role === "ADMIN";
-
-  const headers = {
-    Authorization: `Bearer ${token}`,
-  };
-
-  // Fetch all dealership vehicles
+  // Fetch Vehicles
   const fetchVehicles = async () => {
     try {
-      const response = await axios.get(
-        `${API_URL}/vehicles`,
-        { headers }
-      );
+      setLoading(true);
+
+      const response = await axios.get(`${API_URL}/vehicles`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       setVehicles(response.data.vehicles || []);
     } catch (error) {
@@ -48,8 +48,11 @@ function Dashboard() {
       if (error.response?.status === 401) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+
         navigate("/login");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -62,76 +65,68 @@ function Dashboard() {
     fetchVehicles();
   }, []);
 
-  // Search vehicles
-  const handleSearch = async (e) => {
-    e.preventDefault();
-
-    try {
-      const params = new URLSearchParams();
-
-      if (searchMake) params.append("make", searchMake);
-      if (searchModel) params.append("model", searchModel);
-      if (searchCategory) params.append("category", searchCategory);
-      if (minPrice) params.append("minPrice", minPrice);
-      if (maxPrice) params.append("maxPrice", maxPrice);
-
-      const response = await axios.get(
-        `${API_URL}/vehicles/search?${params.toString()}`,
-        { headers }
-      );
-
-      setVehicles(response.data.vehicles || []);
-    } catch (error) {
-      alert(
-        error.response?.data?.message ||
-          "Failed to search vehicles"
-      );
-    }
+  // Reset Form
+  const resetForm = () => {
+    setBrand("");
+    setModel("");
+    setYear("");
+    setMileage("");
+    setFuelType("");
+    setEditingId(null);
   };
 
-  // Clear search
-  const handleClearSearch = () => {
-    setSearchMake("");
-    setSearchModel("");
-    setSearchCategory("");
-    setMinPrice("");
-    setMaxPrice("");
-
-    fetchVehicles();
+  // Open Add Vehicle Modal
+  const handleOpenAddModal = () => {
+    resetForm();
+    setIsModalOpen(true);
   };
 
-  // Add or update vehicle
+  // Close Modal
+  const handleCloseModal = () => {
+    resetForm();
+    setIsModalOpen(false);
+  };
+
+  // Add or Update Vehicle
   const handleVehicleSubmit = async (e) => {
     e.preventDefault();
 
-    const vehicleData = {
-      make,
-      model,
-      category,
-      price: Number(price),
-      quantity: Number(quantity),
-    };
-
     try {
+      const vehicleData = {
+        brand,
+        model,
+        year: Number(year),
+        mileage: Number(mileage),
+        fuelType,
+      };
+
       if (editingId) {
         await axios.put(
           `${API_URL}/vehicles/${editingId}`,
           vehicleData,
-          { headers }
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
 
-        alert("Vehicle updated successfully!");
+        alert("Vehicle updated successfully");
       } else {
         await axios.post(
           `${API_URL}/vehicles`,
           vehicleData,
-          { headers }
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
 
-        alert("Vehicle added successfully!");
+        alert("Vehicle added successfully");
       }
 
-      resetForm();
+      handleCloseModal();
       fetchVehicles();
     } catch (error) {
       alert(
@@ -141,82 +136,19 @@ function Dashboard() {
     }
   };
 
-  const resetForm = () => {
-    setMake("");
-    setModel("");
-    setCategory("");
-    setPrice("");
-    setQuantity("");
-    setEditingId(null);
-  };
-
-  // Edit vehicle
+  // Edit Vehicle
   const handleEdit = (vehicle) => {
-    setMake(vehicle.make);
-    setModel(vehicle.model);
-    setCategory(vehicle.category);
-    setPrice(vehicle.price);
-    setQuantity(vehicle.quantity);
+    setBrand(vehicle.brand || "");
+    setModel(vehicle.model || "");
+    setYear(vehicle.year || "");
+    setMileage(vehicle.mileage || "");
+    setFuelType(vehicle.fuelType || "");
 
     setEditingId(vehicle.id);
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    setIsModalOpen(true);
   };
 
-  // Purchase vehicle
-  const handlePurchase = async (id) => {
-    try {
-      await axios.post(
-        `${API_URL}/vehicles/${id}/purchase`,
-        {},
-        { headers }
-      );
-
-      alert("Vehicle purchased successfully!");
-
-      fetchVehicles();
-    } catch (error) {
-      alert(
-        error.response?.data?.message ||
-          "Failed to purchase vehicle"
-      );
-    }
-  };
-
-  // Restock vehicle
-  const handleRestock = async (id) => {
-    const amount = window.prompt(
-      "Enter quantity to add:"
-    );
-
-    if (!amount || Number(amount) <= 0) {
-      return;
-    }
-
-    try {
-      await axios.post(
-        `${API_URL}/vehicles/${id}/restock`,
-        {
-          quantity: Number(amount),
-        },
-        { headers }
-      );
-
-      alert("Vehicle restocked successfully!");
-
-      fetchVehicles();
-    } catch (error) {
-      alert(
-        error.response?.data?.message ||
-          "Failed to restock vehicle"
-      );
-    }
-  };
-
-  // Delete vehicle
+  // Delete Vehicle
   const handleDelete = async (id) => {
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this vehicle?"
@@ -225,12 +157,13 @@ function Dashboard() {
     if (!confirmDelete) return;
 
     try {
-      await axios.delete(
-        `${API_URL}/vehicles/${id}`,
-        { headers }
-      );
+      await axios.delete(`${API_URL}/vehicles/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-      alert("Vehicle deleted successfully!");
+      alert("Vehicle deleted successfully");
 
       fetchVehicles();
     } catch (error) {
@@ -249,294 +182,595 @@ function Dashboard() {
     navigate("/login");
   };
 
+  // Dashboard Statistics
+  const totalVehicles = vehicles.length;
+
+  const totalMileage = vehicles.reduce(
+    (total, vehicle) =>
+      total + Number(vehicle.mileage || 0),
+    0
+  );
+
+  const petrolVehicles = vehicles.filter(
+    (vehicle) =>
+      vehicle.fuelType?.toLowerCase() === "petrol"
+  ).length;
+
+  const otherFuelVehicles = vehicles.filter(
+    (vehicle) =>
+      vehicle.fuelType?.toLowerCase() !== "petrol"
+  ).length;
+
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
+    <div className="min-h-screen bg-[#050505] text-white">
 
-      {/* Header */}
-      <div className="max-w-6xl mx-auto mb-8 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">
-            DriveCore 🚗
-          </h1>
+      {/* MAIN LAYOUT */}
+      <div className="flex min-h-screen">
 
-          <p className="text-gray-600 mt-1">
-            Welcome, {user?.name || "User"}!
-            {isAdmin && " 👑 Admin"}
-          </p>
-        </div>
+        {/* SIDEBAR */}
+        <aside className="hidden w-72 flex-col border-r border-white/10 bg-black/40 p-6 lg:flex">
 
-        <div className="flex gap-3">
-          <button
-            onClick={handleLogout}
-            className="bg-red-500 text-white px-4 py-2 rounded-lg"
-          >
-            Logout
-          </button>
-        </div>
+          {/* BRAND */}
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Drive<span className="text-red-500">Core</span>
+            </h1>
+
+            <p className="mt-2 text-xs tracking-wide text-gray-500">
+              DEALERSHIP MANAGEMENT
+            </p>
+          </div>
+
+          {/* NAVIGATION */}
+          <nav className="mt-14 space-y-2">
+
+            <button
+              className="flex w-full items-center rounded-lg border border-white/10 bg-white/10 px-4 py-3 text-left text-sm font-medium text-white transition"
+            >
+              <span className="mr-3 h-2 w-2 rounded-full bg-red-500" />
+              Dashboard
+            </button>
+
+            <button
+              onClick={() =>
+                document
+                  .getElementById("vehicles-section")
+                  ?.scrollIntoView({
+                    behavior: "smooth",
+                  })
+              }
+              className="flex w-full items-center rounded-lg px-4 py-3 text-left text-sm text-gray-400 transition hover:bg-white/5 hover:text-white"
+            >
+              <span className="mr-3 h-2 w-2 rounded-full bg-gray-600" />
+              My Vehicles
+            </button>
+
+            <button
+              onClick={() => navigate("/reminders")}
+              className="flex w-full items-center rounded-lg px-4 py-3 text-left text-sm text-gray-400 transition hover:bg-white/5 hover:text-white"
+            >
+              <span className="mr-3 h-2 w-2 rounded-full bg-gray-600" />
+              Service Reminders
+            </button>
+
+          </nav>
+
+          {/* USER / LOGOUT */}
+          <div className="mt-auto">
+
+            <div className="mb-6 border-t border-white/10 pt-6">
+
+              <p className="text-sm font-medium text-white">
+                {user?.name || "User"}
+              </p>
+
+              <p className="mt-1 truncate text-xs text-gray-500">
+                {user?.email || ""}
+              </p>
+
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="w-full rounded-lg border border-white/10 px-4 py-3 text-sm text-gray-400 transition hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400"
+            >
+              Logout
+            </button>
+
+          </div>
+
+        </aside>
+
+        {/* MAIN CONTENT */}
+        <main className="flex-1">
+
+          {/* MOBILE HEADER */}
+          <header className="flex items-center justify-between border-b border-white/10 bg-black/30 px-5 py-5 lg:hidden">
+
+            <h1 className="text-xl font-semibold">
+              Drive<span className="text-red-500">Core</span>
+            </h1>
+
+            <button
+              onClick={handleLogout}
+              className="rounded-lg border border-white/10 px-4 py-2 text-sm text-gray-300"
+            >
+              Logout
+            </button>
+
+          </header>
+
+          <div className="mx-auto max-w-7xl px-6 py-8 sm:px-10 lg:px-12 lg:py-10">
+
+            {/* HEADER */}
+            <section className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
+
+              <div>
+
+                <p className="text-sm font-medium text-red-400">
+                  DASHBOARD
+                </p>
+
+                <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                  Welcome back,{" "}
+                  {user?.name?.split(" ")[0] || "User"}.
+                </h2>
+
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-400">
+                  Manage and monitor your vehicle inventory
+                  from one centralized platform.
+                </p>
+
+              </div>
+
+              <button
+                onClick={handleOpenAddModal}
+                className="rounded-lg bg-red-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-red-950/30 transition duration-200 hover:bg-red-500 active:scale-[0.98]"
+              >
+                Add Vehicle
+              </button>
+
+            </section>
+
+            {/* STATISTICS */}
+            <section className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
+              {/* TOTAL VEHICLES */}
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl transition hover:border-white/20 hover:bg-white/[0.05]">
+
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-500">
+                  Total Vehicles
+                </p>
+
+                <p className="mt-5 text-3xl font-semibold text-white">
+                  {totalVehicles}
+                </p>
+
+                <p className="mt-2 text-sm text-gray-500">
+                  Vehicles in your inventory
+                </p>
+
+              </div>
+
+              {/* TOTAL MILEAGE */}
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl transition hover:border-white/20 hover:bg-white/[0.05]">
+
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-500">
+                  Total Mileage
+                </p>
+
+                <p className="mt-5 text-3xl font-semibold text-white">
+                  {totalMileage.toLocaleString()}
+                </p>
+
+                <p className="mt-2 text-sm text-gray-500">
+                  Combined vehicle mileage
+                </p>
+
+              </div>
+
+              {/* PETROL VEHICLES */}
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl transition hover:border-white/20 hover:bg-white/[0.05]">
+
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-500">
+                  Petrol Vehicles
+                </p>
+
+                <p className="mt-5 text-3xl font-semibold text-white">
+                  {petrolVehicles}
+                </p>
+
+                <p className="mt-2 text-sm text-gray-500">
+                  Petrol-powered vehicles
+                </p>
+
+              </div>
+
+              {/* OTHER FUEL */}
+              <div className="rounded-xl border border-red-500/20 bg-red-500/[0.04] p-6 backdrop-blur-xl transition hover:border-red-500/40 hover:bg-red-500/[0.07]">
+
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-red-300/70">
+                  Other Fuel Types
+                </p>
+
+                <p className="mt-5 text-3xl font-semibold text-white">
+                  {otherFuelVehicles}
+                </p>
+
+                <p className="mt-2 text-sm text-gray-500">
+                  Diesel, electric and hybrid
+                </p>
+
+              </div>
+
+            </section>
+
+            {/* VEHICLES */}
+            <section
+              id="vehicles-section"
+              className="mt-12"
+            >
+
+              <div className="flex items-end justify-between">
+
+                <div>
+
+                  <h2 className="text-2xl font-semibold text-white">
+                    My Vehicles
+                  </h2>
+
+                  <p className="mt-2 text-sm text-gray-400">
+                    View and manage your vehicle inventory.
+                  </p>
+
+                </div>
+
+                <span className="hidden text-sm text-gray-500 sm:block">
+                  {vehicles.length} vehicle
+                  {vehicles.length !== 1 ? "s" : ""}
+                </span>
+
+              </div>
+
+              {/* LOADING */}
+              {loading ? (
+
+                <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] py-20 text-center text-sm text-gray-500">
+                  Loading your vehicles...
+                </div>
+
+              ) : vehicles.length === 0 ? (
+
+                /* EMPTY STATE */
+                <div className="mt-6 rounded-xl border border-dashed border-white/15 bg-white/[0.02] px-6 py-20 text-center">
+
+                  <h3 className="text-lg font-medium text-white">
+                    No vehicles added yet
+                  </h3>
+
+                  <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-gray-500">
+                    Start building your dealership inventory by
+                    adding your first vehicle.
+                  </p>
+
+                  <button
+                    onClick={handleOpenAddModal}
+                    className="mt-6 rounded-lg bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-500"
+                  >
+                    Add Your First Vehicle
+                  </button>
+
+                </div>
+
+              ) : (
+
+                /* VEHICLE GRID */
+                <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+
+                  {vehicles.map((vehicle) => (
+
+                    <div
+                      key={vehicle.id}
+                      className="group rounded-xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl transition duration-200 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.05]"
+                    >
+
+                      {/* BRAND */}
+                      <div className="flex items-start justify-between gap-4">
+
+                        <div>
+
+                          <p className="text-xs font-medium uppercase tracking-[0.18em] text-red-400">
+                            {vehicle.brand}
+                          </p>
+
+                          <h3 className="mt-3 text-xl font-semibold text-white">
+                            {vehicle.model}
+                          </h3>
+
+                        </div>
+
+                        <span className="rounded-md border border-white/10 bg-black/20 px-3 py-1 text-xs text-gray-400">
+                          {vehicle.fuelType}
+                        </span>
+
+                      </div>
+
+                      {/* DIVIDER */}
+                      <div className="my-6 h-px bg-white/10" />
+
+                      {/* VEHICLE DETAILS */}
+                      <div className="grid grid-cols-2 gap-5">
+
+                        <div>
+
+                          <p className="text-xs uppercase tracking-wide text-gray-500">
+                            Year
+                          </p>
+
+                          <p className="mt-2 text-sm font-medium text-white">
+                            {vehicle.year}
+                          </p>
+
+                        </div>
+
+                        <div>
+
+                          <p className="text-xs uppercase tracking-wide text-gray-500">
+                            Mileage
+                          </p>
+
+                          <p className="mt-2 text-sm font-medium text-white">
+                            {Number(
+                              vehicle.mileage || 0
+                            ).toLocaleString()}{" "}
+                            km
+                          </p>
+
+                        </div>
+
+                      </div>
+
+                      {/* ACTIONS */}
+                      <div className="mt-7 flex flex-wrap gap-2 border-t border-white/10 pt-5">
+
+                        <button
+                          onClick={() =>
+                            navigate(
+                              `/vehicles/${vehicle.id}`
+                            )
+                          }
+                          className="flex-1 rounded-lg border border-white/10 px-3 py-2.5 text-sm font-medium text-gray-300 transition hover:border-white/20 hover:bg-white/10 hover:text-white"
+                        >
+                          View Details
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            handleEdit(vehicle)
+                          }
+                          className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-gray-400 transition hover:border-white/20 hover:bg-white/10 hover:text-white"
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            handleDelete(vehicle.id)
+                          }
+                          className="rounded-lg border border-red-500/20 px-4 py-2.5 text-sm text-red-400 transition hover:bg-red-500 hover:text-white"
+                        >
+                          Delete
+                        </button>
+
+                      </div>
+
+                    </div>
+
+                  ))}
+
+                </div>
+
+              )}
+
+            </section>
+
+          </div>
+
+        </main>
+
       </div>
 
-      <div className="max-w-6xl mx-auto">
+      {/* ADD / EDIT MODAL */}
+      {isModalOpen && (
 
-        {/* Admin Add / Edit Form */}
-        {isAdmin && (
-          <div className="bg-white p-6 rounded-xl shadow mb-8">
-            <h2 className="text-2xl font-bold mb-5">
-              {editingId
-                ? "Edit Vehicle"
-                : "Add Vehicle"}
-            </h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
 
+          <div className="w-full max-w-lg rounded-2xl border border-white/15 bg-[#0b0b0b]/95 p-6 shadow-2xl sm:p-8">
+
+            {/* MODAL HEADER */}
+            <div className="flex items-start justify-between gap-6">
+
+              <div>
+
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-red-400">
+                  Vehicle Management
+                </p>
+
+                <h2 className="mt-2 text-2xl font-semibold text-white">
+                  {editingId
+                    ? "Edit Vehicle"
+                    : "Add New Vehicle"}
+                </h2>
+
+              </div>
+
+              <button
+                onClick={handleCloseModal}
+                className="rounded-lg border border-white/10 px-3 py-2 text-sm text-gray-400 transition hover:bg-white/10 hover:text-white"
+              >
+                Close
+              </button>
+
+            </div>
+
+            {/* FORM */}
             <form
               onSubmit={handleVehicleSubmit}
-              className="grid grid-cols-1 md:grid-cols-2 gap-4"
+              className="mt-8 space-y-5"
             >
-              <input
-                type="text"
-                placeholder="Make (Toyota, Honda...)"
-                value={make}
-                onChange={(e) =>
-                  setMake(e.target.value)
-                }
-                required
-                className="border p-3 rounded-lg"
-              />
 
-              <input
-                type="text"
-                placeholder="Model"
-                value={model}
-                onChange={(e) =>
-                  setModel(e.target.value)
-                }
-                required
-                className="border p-3 rounded-lg"
-              />
+              {/* BRAND */}
+              <div>
 
-              <input
-                type="text"
-                placeholder="Category (SUV, Sedan...)"
-                value={category}
-                onChange={(e) =>
-                  setCategory(e.target.value)
-                }
-                required
-                className="border p-3 rounded-lg"
-              />
+                <label className="mb-2 block text-sm font-medium text-gray-300">
+                  Brand
+                </label>
 
-              <input
-                type="number"
-                placeholder="Price"
-                value={price}
-                onChange={(e) =>
-                  setPrice(e.target.value)
-                }
-                required
-                className="border p-3 rounded-lg"
-              />
+                <input
+                  type="text"
+                  placeholder="Enter vehicle brand"
+                  value={brand}
+                  onChange={(e) =>
+                    setBrand(e.target.value)
+                  }
+                  required
+                  className="w-full rounded-lg border border-white/15 bg-white/[0.05] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 hover:bg-white/[0.07] focus:border-red-400 focus:ring-2 focus:ring-red-500/20"
+                />
 
-              <input
-                type="number"
-                placeholder="Quantity"
-                value={quantity}
-                onChange={(e) =>
-                  setQuantity(e.target.value)
-                }
-                required
-                min="0"
-                className="border p-3 rounded-lg"
-              />
+              </div>
 
-              <div className="flex gap-3">
+              {/* MODEL */}
+              <div>
+
+                <label className="mb-2 block text-sm font-medium text-gray-300">
+                  Model
+                </label>
+
+                <input
+                  type="text"
+                  placeholder="Enter vehicle model"
+                  value={model}
+                  onChange={(e) =>
+                    setModel(e.target.value)
+                  }
+                  required
+                  className="w-full rounded-lg border border-white/15 bg-white/[0.05] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 hover:bg-white/[0.07] focus:border-red-400 focus:ring-2 focus:ring-red-500/20"
+                />
+
+              </div>
+
+              {/* YEAR AND MILEAGE */}
+              <div className="grid gap-5 sm:grid-cols-2">
+
+                <div>
+
+                  <label className="mb-2 block text-sm font-medium text-gray-300">
+                    Year
+                  </label>
+
+                  <input
+                    type="number"
+                    placeholder="2026"
+                    value={year}
+                    onChange={(e) =>
+                      setYear(e.target.value)
+                    }
+                    required
+                    className="w-full rounded-lg border border-white/15 bg-white/[0.05] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-red-400 focus:ring-2 focus:ring-red-500/20"
+                  />
+
+                </div>
+
+                <div>
+
+                  <label className="mb-2 block text-sm font-medium text-gray-300">
+                    Mileage
+                  </label>
+
+                  <input
+                    type="number"
+                    placeholder="Enter mileage"
+                    value={mileage}
+                    onChange={(e) =>
+                      setMileage(e.target.value)
+                    }
+                    required
+                    className="w-full rounded-lg border border-white/15 bg-white/[0.05] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-red-400 focus:ring-2 focus:ring-red-500/20"
+                  />
+
+                </div>
+
+              </div>
+
+              {/* FUEL TYPE */}
+              <div>
+
+                <label className="mb-2 block text-sm font-medium text-gray-300">
+                  Fuel Type
+                </label>
+
+                <select
+                  value={fuelType}
+                  onChange={(e) =>
+                    setFuelType(e.target.value)
+                  }
+                  required
+                  className="w-full rounded-lg border border-white/15 bg-[#151515] px-4 py-3 text-sm text-white outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-500/20"
+                >
+                  <option value="">
+                    Select fuel type
+                  </option>
+
+                  <option value="Petrol">
+                    Petrol
+                  </option>
+
+                  <option value="Diesel">
+                    Diesel
+                  </option>
+
+                  <option value="Electric">
+                    Electric
+                  </option>
+
+                  <option value="Hybrid">
+                    Hybrid
+                  </option>
+
+                </select>
+
+              </div>
+
+              {/* BUTTONS */}
+              <div className="flex gap-3 pt-3">
+
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="flex-1 rounded-lg border border-white/10 px-4 py-3 text-sm font-medium text-gray-300 transition hover:bg-white/10 hover:text-white"
+                >
+                  Cancel
+                </button>
+
                 <button
                   type="submit"
-                  className="bg-blue-600 text-white px-5 py-3 rounded-lg"
+                  className="flex-1 rounded-lg bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-500 active:scale-[0.98]"
                 >
                   {editingId
-                    ? "Update Vehicle"
+                    ? "Save Changes"
                     : "Add Vehicle"}
                 </button>
 
-                {editingId && (
-                  <button
-                    type="button"
-                    onClick={resetForm}
-                    className="bg-gray-400 text-white px-5 py-3 rounded-lg"
-                  >
-                    Cancel
-                  </button>
-                )}
               </div>
+
             </form>
+
           </div>
-        )}
 
-        {/* Search */}
-        <div className="bg-white p-6 rounded-xl shadow mb-8">
-          <h2 className="text-2xl font-bold mb-5">
-            Search Vehicles 🔍
-          </h2>
-
-          <form
-            onSubmit={handleSearch}
-            className="grid grid-cols-1 md:grid-cols-3 gap-4"
-          >
-            <input
-              type="text"
-              placeholder="Search by Make"
-              value={searchMake}
-              onChange={(e) =>
-                setSearchMake(e.target.value)
-              }
-              className="border p-3 rounded-lg"
-            />
-
-            <input
-              type="text"
-              placeholder="Search by Model"
-              value={searchModel}
-              onChange={(e) =>
-                setSearchModel(e.target.value)
-              }
-              className="border p-3 rounded-lg"
-            />
-
-            <input
-              type="text"
-              placeholder="Category"
-              value={searchCategory}
-              onChange={(e) =>
-                setSearchCategory(e.target.value)
-              }
-              className="border p-3 rounded-lg"
-            />
-
-            <input
-              type="number"
-              placeholder="Minimum Price"
-              value={minPrice}
-              onChange={(e) =>
-                setMinPrice(e.target.value)
-              }
-              className="border p-3 rounded-lg"
-            />
-
-            <input
-              type="number"
-              placeholder="Maximum Price"
-              value={maxPrice}
-              onChange={(e) =>
-                setMaxPrice(e.target.value)
-              }
-              className="border p-3 rounded-lg"
-            />
-
-            <div className="flex gap-3">
-              <button
-                type="submit"
-                className="bg-green-600 text-white px-5 py-3 rounded-lg"
-              >
-                Search
-              </button>
-
-              <button
-                type="button"
-                onClick={handleClearSearch}
-                className="bg-gray-500 text-white px-5 py-3 rounded-lg"
-              >
-                Clear
-              </button>
-            </div>
-          </form>
         </div>
 
-        {/* Inventory */}
-        <h2 className="text-2xl font-bold mb-5">
-          Dealership Inventory
-        </h2>
+      )}
 
-        {vehicles.length === 0 ? (
-          <div className="bg-white p-6 rounded-xl shadow">
-            No vehicles found.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {vehicles.map((vehicle) => (
-              <div
-                key={vehicle.id}
-                className="bg-white rounded-xl shadow p-6"
-              >
-                <h3 className="text-xl font-bold">
-                  {vehicle.make} {vehicle.model}
-                </h3>
-
-                <p className="text-gray-600 mt-2">
-                  Category: {vehicle.category}
-                </p>
-
-                <p className="text-gray-600">
-                  Price: ₹{vehicle.price}
-                </p>
-
-                <p className="text-gray-600 mb-4">
-                  Available: {vehicle.quantity}
-                </p>
-
-                <div className="flex flex-wrap gap-2">
-
-                  {/* Purchase */}
-                  <button
-                    onClick={() =>
-                      handlePurchase(vehicle.id)
-                    }
-                    disabled={vehicle.quantity === 0}
-                    className={`px-4 py-2 rounded-lg text-white ${
-                      vehicle.quantity === 0
-                        ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-green-600"
-                    }`}
-                  >
-                    {vehicle.quantity === 0
-                      ? "Out of Stock"
-                      : "Purchase"}
-                  </button>
-
-                  {/* Admin Controls */}
-                  {isAdmin && (
-                    <>
-                      <button
-                        onClick={() =>
-                          handleEdit(vehicle)
-                        }
-                        className="bg-blue-500 text-white px-4 py-2 rounded-lg"
-                      >
-                        Edit
-                      </button>
-
-                      <button
-                        onClick={() =>
-                          handleRestock(vehicle.id)
-                        }
-                        className="bg-yellow-500 text-white px-4 py-2 rounded-lg"
-                      >
-                        Restock
-                      </button>
-
-                      <button
-                        onClick={() =>
-                          handleDelete(vehicle.id)
-                        }
-                        className="bg-red-500 text-white px-4 py-2 rounded-lg"
-                      >
-                        Delete
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
