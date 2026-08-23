@@ -1,4 +1,4 @@
-DriveCore – Car Dealership Inventory Management System
+***DriveCore – Car Dealership Inventory Management System***
 
 DriveCore is a full-stack Car Dealership Inventory Management System designed to help dealerships manage their vehicle inventory efficiently. The application provides secure authentication, vehicle management, inventory tracking, purchasing, restocking, search functionality, and an AI-powered inventory assistant.
 
