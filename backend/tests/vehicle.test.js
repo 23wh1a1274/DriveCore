@@ -409,6 +409,61 @@ describe("GET /api/vehicles/search", () => {
   });
 });
 
+describe("POST /api/vehicles/:id/purchase", () => {
+  it("should purchase a vehicle and decrease its quantity", async () => {
+    const email = `purchase${Date.now()}@example.com`;
+    const password = "password123";
+
+    // Register user
+    await request(app)
+      .post("/api/auth/register")
+      .send({
+        name: "Purchase Test User",
+        email,
+        password,
+      });
+
+    // Login
+    const loginResponse = await request(app)
+      .post("/api/auth/login")
+      .send({
+        email,
+        password,
+      });
+
+    const token = loginResponse.body.token;
+
+    // Create vehicle with quantity 5
+    const vehicleResponse = await request(app)
+      .post("/api/vehicles")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        make: "Toyota",
+        model: "Fortuner",
+        category: "SUV",
+        price: 50000,
+        quantity: 5,
+      });
+
+    const vehicleId = vehicleResponse.body.vehicle.id;
+
+    // Purchase the vehicle
+    const response = await request(app)
+      .post(`/api/vehicles/${vehicleId}/purchase`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.statusCode).toBe(200);
+
+    expect(response.body).toMatchObject({
+      message: "Vehicle purchased successfully",
+      vehicle: {
+        id: vehicleId,
+        quantity: 4,
+      },
+    });
+  });
+});
+
 afterAll(async () => {
   await prisma.$disconnect();
 });
