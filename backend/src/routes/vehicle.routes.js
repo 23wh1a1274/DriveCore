@@ -58,6 +58,64 @@ router.get("/", authenticateToken, async (req, res) => {
   }
 });
 
+router.get("/search", authenticateToken, async (req, res) => {
+  try {
+    const { make, model, category, minPrice, maxPrice } = req.query;
+
+    const where = {};
+
+    if (make) {
+      where.make = {
+        equals: make,
+        mode: "insensitive",
+      };
+    }
+
+    if (model) {
+      where.model = {
+        contains: model,
+        mode: "insensitive",
+      };
+    }
+
+    if (category) {
+      where.category = {
+        equals: category,
+        mode: "insensitive",
+      };
+    }
+
+    if (minPrice || maxPrice) {
+      where.price = {};
+
+      if (minPrice) {
+        where.price.gte = Number(minPrice);
+      }
+
+      if (maxPrice) {
+        where.price.lte = Number(maxPrice);
+      }
+    }
+
+    const vehicles = await prisma.vehicle.findMany({
+      where,
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return res.status(200).json({
+      vehicles,
+    });
+  } catch (error) {
+    console.error("Vehicle search error:", error);
+
+    return res.status(500).json({
+      message: "Failed to search vehicles",
+    });
+  }
+});
+
 router.get("/:id", authenticateToken, async (req, res) => {
   try {
     const vehicleId = Number(req.params.id);
