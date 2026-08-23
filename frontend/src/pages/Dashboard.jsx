@@ -8,11 +8,11 @@ function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
-  const [brand, setBrand] = useState("");
+  const [make, setMake] = useState("");
   const [model, setModel] = useState("");
-  const [year, setYear] = useState("");
-  const [mileage, setMileage] = useState("");
-  const [fuelType, setFuelType] = useState("");
+  const [category, setCategory] = useState("");
+  const [price, setPrice] = useState("");
+  const [quantity, setQuantity] = useState("");
 
   const [loading, setLoading] = useState(true);
 
@@ -20,6 +20,12 @@ function Dashboard() {
   const [aiMessage, setAiMessage] = useState("");
   const [aiMessages, setAiMessages] = useState([]);
   const [aiLoading, setAiLoading] = useState(false);
+
+  const [searchMake, setSearchMake] = useState("");
+  const [searchModel, setSearchModel] = useState("");
+  const [searchCategory, setSearchCategory] = useState("");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
 
   const navigate = useNavigate();
 
@@ -70,15 +76,73 @@ function Dashboard() {
     fetchVehicles();
   }, []);
 
+  const handleSearch = async () => {
+  try {
+    setLoading(true);
+
+    const params = new URLSearchParams();
+
+    if (searchMake.trim()) {
+      params.append("make", searchMake.trim());
+    }
+
+    if (searchModel.trim()) {
+      params.append("model", searchModel.trim());
+    }
+
+    if (searchCategory.trim()) {
+      params.append("category", searchCategory.trim());
+    }
+
+    if (minPrice !== "") {
+      params.append("minPrice", minPrice);
+    }
+
+    if (maxPrice !== "") {
+      params.append("maxPrice", maxPrice);
+    }
+
+    const response = await axios.get(
+      `${API_URL}/vehicles/search?${params.toString()}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    setVehicles(response.data.vehicles || []);
+
+  } catch (error) {
+    console.error("Vehicle search error:", error);
+
+    alert(
+      error.response?.data?.message ||
+      "Failed to search vehicles"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
+const handleClearFilters = () => {
+  setSearchMake("");
+  setSearchModel("");
+  setSearchCategory("");
+  setMinPrice("");
+  setMaxPrice("");
+
+  fetchVehicles();
+};
   // Reset Form
-  const resetForm = () => {
-    setBrand("");
-    setModel("");
-    setYear("");
-    setMileage("");
-    setFuelType("");
-    setEditingId(null);
-  };
+const resetForm = () => {
+  setMake("");
+  setModel("");
+  setCategory("");
+  setPrice("");
+  setQuantity("");
+  setEditingId(null);
+};
 
   // Open Add Vehicle Modal
   const handleOpenAddModal = () => {
@@ -93,65 +157,68 @@ function Dashboard() {
   };
 
   // Add or Update Vehicle
-  const handleVehicleSubmit = async (e) => {
-    e.preventDefault();
+const handleVehicleSubmit = async (e) => {
+  e.preventDefault();
 
-    try {
-      const vehicleData = {
-        brand,
-        model,
-        year: Number(year),
-        mileage: Number(mileage),
-        fuelType,
-      };
+  try {
+    const vehicleData = {
+      make,
+      model,
+      category,
+      price: Number(price),
+      quantity: Number(quantity),
+    };
 
-      if (editingId) {
-        await axios.put(
-          `${API_URL}/vehicles/${editingId}`,
-          vehicleData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        alert("Vehicle updated successfully");
-      } else {
-        await axios.post(
-          `${API_URL}/vehicles`,
-          vehicleData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        alert("Vehicle added successfully");
-      }
-
-      handleCloseModal();
-      fetchVehicles();
-    } catch (error) {
-      alert(
-        error.response?.data?.message ||
-          "Failed to save vehicle"
+    if (editingId) {
+      await axios.put(
+        `${API_URL}/vehicles/${editingId}`,
+        vehicleData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
+
+      alert("Vehicle updated successfully");
+    } else {
+      await axios.post(
+        `${API_URL}/vehicles`,
+        vehicleData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      alert("Vehicle added successfully");
     }
-  };
 
-  // Edit Vehicle
-  const handleEdit = (vehicle) => {
-    setBrand(vehicle.brand || "");
-    setModel(vehicle.model || "");
-    setYear(vehicle.year || "");
-    setMileage(vehicle.mileage || "");
-    setFuelType(vehicle.fuelType || "");
+    handleCloseModal();
+    fetchVehicles();
 
-    setEditingId(vehicle.id);
-    setIsModalOpen(true);
-  };
+  } catch (error) {
+    console.error("Vehicle save error:", error);
+
+    alert(
+      error.response?.data?.message ||
+      "Failed to save vehicle"
+    );
+  }
+};
+
+// Edit Vehicle
+const handleEdit = (vehicle) => {
+  setMake(vehicle.make || "");
+  setModel(vehicle.model || "");
+  setCategory(vehicle.category || "");
+  setPrice(vehicle.price || "");
+  setQuantity(vehicle.quantity || "");
+
+  setEditingId(vehicle.id);
+  setIsModalOpen(true);
+};
 
   // Delete Vehicle
   const handleDelete = async (id) => {
@@ -240,24 +307,28 @@ function Dashboard() {
     navigate("/login");
   };
 
-  // Dashboard Statistics
-  const totalVehicles = vehicles.length;
+// Dashboard Statistics
 
-  const totalMileage = vehicles.reduce(
-    (total, vehicle) =>
-      total + Number(vehicle.mileage || 0),
-    0
-  );
+const totalVehicles = vehicles.length;
 
-  const petrolVehicles = vehicles.filter(
-    (vehicle) =>
-      vehicle.fuelType?.toLowerCase() === "petrol"
-  ).length;
+const totalStock = vehicles.reduce(
+  (total, vehicle) =>
+    total + Number(vehicle.quantity || 0),
+  0
+);
 
-  const otherFuelVehicles = vehicles.filter(
-    (vehicle) =>
-      vehicle.fuelType?.toLowerCase() !== "petrol"
-  ).length;
+const totalInventoryValue = vehicles.reduce(
+  (total, vehicle) =>
+    total +
+    Number(vehicle.price || 0) *
+      Number(vehicle.quantity || 0),
+  0
+);
+
+const lowStockVehicles = vehicles.filter(
+  (vehicle) =>
+    Number(vehicle.quantity || 0) <= 2
+).length;
 
   return (
     <div className="min-h-screen bg-[#050505] text-white">
@@ -405,58 +476,61 @@ function Dashboard() {
                 </p>
 
                 <p className="mt-2 text-sm text-gray-500">
-                  Vehicles in your inventory
+                  Vehicle records in inventory
                 </p>
 
               </div>
 
-              {/* TOTAL MILEAGE */}
+
+              {/* TOTAL STOCK */}
               <div className="rounded-xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl transition hover:border-white/20 hover:bg-white/[0.05]">
 
                 <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-500">
-                  Total Mileage
+                  Total Stock
                 </p>
 
                 <p className="mt-5 text-3xl font-semibold text-white">
-                  {totalMileage.toLocaleString()}
+                  {totalStock.toLocaleString()}
                 </p>
 
                 <p className="mt-2 text-sm text-gray-500">
-                  Combined vehicle mileage
+                  Total units available
                 </p>
 
               </div>
 
-              {/* PETROL VEHICLES */}
+
+              {/* INVENTORY VALUE */}
               <div className="rounded-xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl transition hover:border-white/20 hover:bg-white/[0.05]">
 
                 <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-500">
-                  Petrol Vehicles
+                  Inventory Value
                 </p>
 
                 <p className="mt-5 text-3xl font-semibold text-white">
-                  {petrolVehicles}
+                  ${totalInventoryValue.toLocaleString()}
                 </p>
 
                 <p className="mt-2 text-sm text-gray-500">
-                  Petrol-powered vehicles
+                  Estimated inventory value
                 </p>
 
               </div>
 
-              {/* OTHER FUEL */}
+
+              {/* LOW STOCK */}
               <div className="rounded-xl border border-red-500/20 bg-red-500/[0.04] p-6 backdrop-blur-xl transition hover:border-red-500/40 hover:bg-red-500/[0.07]">
 
                 <p className="text-xs font-medium uppercase tracking-[0.18em] text-red-300/70">
-                  Other Fuel Types
+                  Low Stock
                 </p>
 
                 <p className="mt-5 text-3xl font-semibold text-white">
-                  {otherFuelVehicles}
+                  {lowStockVehicles}
                 </p>
 
                 <p className="mt-2 text-sm text-gray-500">
-                  Diesel, electric and hybrid
+                  Vehicles with 2 or fewer units
                 </p>
 
               </div>
@@ -487,6 +561,187 @@ function Dashboard() {
                   {vehicles.length} vehicle
                   {vehicles.length !== 1 ? "s" : ""}
                 </span>
+
+              </div>
+
+              {/* SEARCH & FILTER SECTION */}
+              <div className="mb-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-xl">
+
+                <div className="mb-5">
+                  <h2 className="text-lg font-semibold text-white">
+                    Search Inventory
+                  </h2>
+
+                  <p className="mt-1 text-sm text-zinc-400">
+                    Find vehicles by make, model, category, or price range.
+                  </p>
+                </div>
+
+
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+
+                  {/* MAKE */}
+                  <input
+                    type="text"
+                    placeholder="Search make"
+                    value={searchMake}
+                    onChange={(e) => setSearchMake(e.target.value)}
+                    className="
+                      rounded-xl
+                      border
+                      border-white/10
+                      bg-white/[0.05]
+                      px-4
+                      py-3
+                      text-sm
+                      text-white
+                      outline-none
+                      transition
+                      placeholder:text-zinc-500
+                      focus:border-red-500/60
+                      focus:ring-2
+                      focus:ring-red-500/10
+                    "
+                  />
+
+
+                  {/* MODEL */}
+                  <input
+                    type="text"
+                    placeholder="Search model"
+                    value={searchModel}
+                    onChange={(e) => setSearchModel(e.target.value)}
+                    className="
+                      rounded-xl
+                      border
+                      border-white/10
+                      bg-white/[0.05]
+                      px-4
+                      py-3
+                      text-sm
+                      text-white
+                      outline-none
+                      transition
+                      placeholder:text-zinc-500
+                      focus:border-red-500/60
+                    "
+                  />
+
+
+                  {/* CATEGORY */}
+                  <select
+                    value={searchCategory}
+                    onChange={(e) => setSearchCategory(e.target.value)}
+                    className="
+                      rounded-xl
+                      border
+                      border-white/10
+                      bg-zinc-900
+                      px-4
+                      py-3
+                      text-sm
+                      text-white
+                      outline-none
+                      transition
+                      focus:border-red-500/60
+                    "
+                  >
+                    <option value="">All Categories</option>
+                    <option value="SUV">SUV</option>
+                    <option value="Sedan">Sedan</option>
+                    <option value="Hatchback">Hatchback</option>
+                    <option value="Coupe">Coupe</option>
+                    <option value="Truck">Truck</option>
+                  </select>
+
+
+                  {/* MIN PRICE */}
+                  <input
+                    type="number"
+                    placeholder="Min price"
+                    value={minPrice}
+                    onChange={(e) => setMinPrice(e.target.value)}
+                    className="
+                      rounded-xl
+                      border
+                      border-white/10
+                      bg-white/[0.05]
+                      px-4
+                      py-3
+                      text-sm
+                      text-white
+                      outline-none
+                      placeholder:text-zinc-500
+                      focus:border-red-500/60
+                    "
+                  />
+
+
+                  {/* MAX PRICE */}
+                  <input
+                    type="number"
+                    placeholder="Max price"
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(e.target.value)}
+                    className="
+                      rounded-xl
+                      border
+                      border-white/10
+                      bg-white/[0.05]
+                      px-4
+                      py-3
+                      text-sm
+                      text-white
+                      outline-none
+                      placeholder:text-zinc-500
+                      focus:border-red-500/60
+                    "
+                  />
+
+                </div>
+
+
+                <div className="mt-4 flex flex-wrap gap-3">
+
+                  <button
+                    onClick={handleSearch}
+                    className="
+                      rounded-xl
+                      bg-red-600
+                      px-6
+                      py-3
+                      text-sm
+                      font-medium
+                      text-white
+                      transition
+                      hover:bg-red-500
+                      active:scale-[0.98]
+                    "
+                  >
+                    Search Vehicles
+                  </button>
+
+
+                  <button
+                    onClick={handleClearFilters}
+                    className="
+                      rounded-xl
+                      border
+                      border-white/10
+                      px-6
+                      py-3
+                      text-sm
+                      font-medium
+                      text-zinc-300
+                      transition
+                      hover:bg-white/10
+                      hover:text-white
+                    "
+                  >
+                    Clear Filters
+                  </button>
+
+                </div>
 
               </div>
 
@@ -532,89 +787,85 @@ function Dashboard() {
                       className="group rounded-xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl transition duration-200 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.05]"
                     >
 
-                      {/* BRAND */}
+                      {/* HEADER */}
                       <div className="flex items-start justify-between gap-4">
 
                         <div>
-
                           <p className="text-xs font-medium uppercase tracking-[0.18em] text-red-400">
-                            {vehicle.brand}
+                            {vehicle.category}
                           </p>
 
                           <h3 className="mt-3 text-xl font-semibold text-white">
-                            {vehicle.model}
+                            {vehicle.make} {vehicle.model}
                           </h3>
-
                         </div>
 
-                        <span className="rounded-md border border-white/10 bg-black/20 px-3 py-1 text-xs text-gray-400">
-                          {vehicle.fuelType}
+                        <span
+                          className={`rounded-md border px-3 py-1 text-xs ${
+                            Number(vehicle.quantity) <= 2
+                              ? "border-red-500/30 bg-red-500/10 text-red-400"
+                              : "border-white/10 bg-black/20 text-gray-400"
+                          }`}
+                        >
+                          {vehicle.quantity} in stock
                         </span>
 
                       </div>
 
-                      {/* DIVIDER */}
+
                       <div className="my-6 h-px bg-white/10" />
+
 
                       {/* VEHICLE DETAILS */}
                       <div className="grid grid-cols-2 gap-5">
 
                         <div>
-
                           <p className="text-xs uppercase tracking-wide text-gray-500">
-                            Year
+                            Price
                           </p>
 
                           <p className="mt-2 text-sm font-medium text-white">
-                            {vehicle.year}
+                            ${Number(vehicle.price || 0).toLocaleString()}
                           </p>
-
                         </div>
 
-                        <div>
 
+                        <div>
                           <p className="text-xs uppercase tracking-wide text-gray-500">
-                            Mileage
+                            Quantity
                           </p>
 
                           <p className="mt-2 text-sm font-medium text-white">
-                            {Number(
-                              vehicle.mileage || 0
-                            ).toLocaleString()}{" "}
-                            km
+                            {vehicle.quantity || 0} units
                           </p>
-
                         </div>
 
                       </div>
+
 
                       {/* ACTIONS */}
                       <div className="mt-7 flex flex-wrap gap-2 border-t border-white/10 pt-5">
 
                         <button
                           onClick={() =>
-                            navigate(
-                              `/vehicles/${vehicle.id}`
-                            )
+                            navigate(`/vehicles/${vehicle.id}`)
                           }
                           className="flex-1 rounded-lg border border-white/10 px-3 py-2.5 text-sm font-medium text-gray-300 transition hover:border-white/20 hover:bg-white/10 hover:text-white"
                         >
                           View Details
                         </button>
 
+
                         <button
-                          onClick={() =>
-                            handleEdit(vehicle)
-                          }
+                          onClick={() => handleEdit(vehicle)}
                           className="rounded-lg border border-white/10 px-4 py-2.5 text-sm text-gray-400 transition hover:border-white/20 hover:bg-white/10 hover:text-white"
                         >
                           Edit
                         </button>
 
+
                         <button
-                          onClick={() =>
-                            handleDelete(vehicle.id)
-                          }
+                          onClick={() => handleDelete(vehicle.id)}
                           className="rounded-lg border border-red-500/20 px-4 py-2.5 text-sm text-red-400 transition hover:bg-red-500 hover:text-white"
                         >
                           Delete
@@ -677,25 +928,24 @@ function Dashboard() {
               className="mt-8 space-y-5"
             >
 
-              {/* BRAND */}
+              {/* MAKE */}
               <div>
 
                 <label className="mb-2 block text-sm font-medium text-gray-300">
-                  Brand
+                  Make
                 </label>
 
                 <input
                   type="text"
-                  placeholder="Enter vehicle brand"
-                  value={brand}
-                  onChange={(e) =>
-                    setBrand(e.target.value)
-                  }
+                  placeholder="Enter vehicle make"
+                  value={make}
+                  onChange={(e) => setMake(e.target.value)}
                   required
                   className="w-full rounded-lg border border-white/15 bg-white/[0.05] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 hover:bg-white/[0.07] focus:border-red-400 focus:ring-2 focus:ring-red-500/20"
                 />
 
               </div>
+
 
               {/* MODEL */}
               <div>
@@ -708,50 +958,67 @@ function Dashboard() {
                   type="text"
                   placeholder="Enter vehicle model"
                   value={model}
-                  onChange={(e) =>
-                    setModel(e.target.value)
-                  }
+                  onChange={(e) => setModel(e.target.value)}
                   required
                   className="w-full rounded-lg border border-white/15 bg-white/[0.05] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 hover:bg-white/[0.07] focus:border-red-400 focus:ring-2 focus:ring-red-500/20"
                 />
 
               </div>
 
-              {/* YEAR AND MILEAGE */}
+
+              {/* CATEGORY */}
+              <div>
+
+                <label className="mb-2 block text-sm font-medium text-gray-300">
+                  Category
+                </label>
+
+                <input
+                  type="text"
+                  placeholder="SUV, Sedan, Hatchback..."
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  required
+                  className="w-full rounded-lg border border-white/15 bg-white/[0.05] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 hover:bg-white/[0.07] focus:border-red-400 focus:ring-2 focus:ring-red-500/20"
+                />
+
+              </div>
+
+
+              {/* PRICE + QUANTITY */}
               <div className="grid gap-5 sm:grid-cols-2">
 
                 <div>
 
                   <label className="mb-2 block text-sm font-medium text-gray-300">
-                    Year
+                    Price
                   </label>
 
                   <input
                     type="number"
-                    placeholder="2026"
-                    value={year}
-                    onChange={(e) =>
-                      setYear(e.target.value)
-                    }
+                    min="0"
+                    placeholder="Enter price"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
                     required
                     className="w-full rounded-lg border border-white/15 bg-white/[0.05] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-red-400 focus:ring-2 focus:ring-red-500/20"
                   />
 
                 </div>
+
 
                 <div>
 
                   <label className="mb-2 block text-sm font-medium text-gray-300">
-                    Mileage
+                    Quantity
                   </label>
 
                   <input
                     type="number"
-                    placeholder="Enter mileage"
-                    value={mileage}
-                    onChange={(e) =>
-                      setMileage(e.target.value)
-                    }
+                    min="0"
+                    placeholder="Enter quantity"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
                     required
                     className="w-full rounded-lg border border-white/15 bg-white/[0.05] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-red-400 focus:ring-2 focus:ring-red-500/20"
                   />
@@ -760,44 +1027,6 @@ function Dashboard() {
 
               </div>
 
-              {/* FUEL TYPE */}
-              <div>
-
-                <label className="mb-2 block text-sm font-medium text-gray-300">
-                  Fuel Type
-                </label>
-
-                <select
-                  value={fuelType}
-                  onChange={(e) =>
-                    setFuelType(e.target.value)
-                  }
-                  required
-                  className="w-full rounded-lg border border-white/15 bg-[#151515] px-4 py-3 text-sm text-white outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-500/20"
-                >
-                  <option value="">
-                    Select fuel type
-                  </option>
-
-                  <option value="Petrol">
-                    Petrol
-                  </option>
-
-                  <option value="Diesel">
-                    Diesel
-                  </option>
-
-                  <option value="Electric">
-                    Electric
-                  </option>
-
-                  <option value="Hybrid">
-                    Hybrid
-                  </option>
-
-                </select>
-
-              </div>
 
               {/* BUTTONS */}
               <div className="flex gap-3 pt-3">
@@ -814,9 +1043,7 @@ function Dashboard() {
                   type="submit"
                   className="flex-1 rounded-lg bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-500 active:scale-[0.98]"
                 >
-                  {editingId
-                    ? "Save Changes"
-                    : "Add Vehicle"}
+                  {editingId ? "Save Changes" : "Add Vehicle"}
                 </button>
 
               </div>
