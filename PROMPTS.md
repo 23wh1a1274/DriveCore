@@ -59,3 +59,23 @@ Frontend:
 - Sort reminders by the nearest service date.
 - Add navigation from the Dashboard to the Service Reminders page.
 - Add a button to return to the Dashboard.
+
+
+
+
+
+- User registration and login
+- JWT authentication
+- Vehicle inventory
+- Vehicle make
+- Vehicle model
+- Category
+- Price
+- Quantity
+- Search and filtering
+- Purchase functionality
+- Admin vehicle management
+- Admin restocking
+- Admin deletion
+
+I want to remove the old service and reminder features because they are not part of the Car Dealership Inventory System requirements.
