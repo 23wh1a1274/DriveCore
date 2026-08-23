@@ -96,6 +96,87 @@ describe("GET /api/vehicles", () => {
   });
 });
 
+describe("GET /api/vehicles - dealership inventory", () => {
+  it("should allow another authenticated user to view all vehicles", async () => {
+    const timestamp = Date.now();
+
+    const ownerEmail = `owner${timestamp}@example.com`;
+    const viewerEmail = `viewer${timestamp}@example.com`;
+    const password = "password123";
+
+    // Register vehicle owner
+    await request(app)
+      .post("/api/auth/register")
+      .send({
+        name: "Vehicle Owner",
+        email: ownerEmail,
+        password,
+      });
+
+    // Login as owner
+    const ownerLogin = await request(app)
+      .post("/api/auth/login")
+      .send({
+        email: ownerEmail,
+        password,
+      });
+
+    const ownerToken = ownerLogin.body.token;
+
+    // Owner adds a vehicle
+    const vehicleResponse = await request(app)
+      .post("/api/vehicles")
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({
+        make: "Toyota",
+        model: "Fortuner",
+        category: "SUV",
+        price: 50000,
+        quantity: 2,
+      });
+
+    expect(vehicleResponse.statusCode).toBe(201);
+
+    // Register another user
+    await request(app)
+      .post("/api/auth/register")
+      .send({
+        name: "Vehicle Viewer",
+        email: viewerEmail,
+        password,
+      });
+
+    // Login as another user
+    const viewerLogin = await request(app)
+      .post("/api/auth/login")
+      .send({
+        email: viewerEmail,
+        password,
+      });
+
+    const viewerToken = viewerLogin.body.token;
+
+    // Viewer should see the dealership inventory
+    const response = await request(app)
+      .get("/api/vehicles")
+      .set("Authorization", `Bearer ${viewerToken}`);
+
+    expect(response.statusCode).toBe(200);
+
+    expect(response.body.vehicles).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          make: "Toyota",
+          model: "Fortuner",
+          category: "SUV",
+          price: 50000,
+          quantity: 2,
+        }),
+      ])
+    );
+  });
+});
+
 describe("GET /api/vehicles/:id", () => {
   it("should return a specific vehicle for the authenticated user", async () => {
     const email = `single${Date.now()}@example.com`;
