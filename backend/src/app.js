@@ -5,6 +5,7 @@ const cors = require("cors");
 const authRoutes = require("./routes/auth.routes");
 const vehicleRoutes = require("./routes/vehicle.routes");
 const reminderRoutes = require("./routes/reminder.routes");
+const aiRoutes = require("./routes/ai.routes");
 
 const app = express();
 
@@ -24,5 +25,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/vehicles", vehicleRoutes);
 
 app.use("/api/reminders", reminderRoutes);
+
+app.use("/api/ai", aiRoutes);
 
 module.exports = app;

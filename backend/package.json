@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@mistralai/mistralai": "^2.6.4",
     "@prisma/adapter-pg": "^7.9.1",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",

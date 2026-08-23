@@ -16,6 +16,11 @@ function Dashboard() {
 
   const [loading, setLoading] = useState(true);
 
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiMessage, setAiMessage] = useState("");
+  const [aiMessages, setAiMessages] = useState([]);
+  const [aiLoading, setAiLoading] = useState(false);
+
   const navigate = useNavigate();
 
   const token = localStorage.getItem("token");
@@ -173,6 +178,59 @@ function Dashboard() {
       );
     }
   };
+
+  const handleAskAI = async (question = aiMessage) => {
+  if (!question.trim() || aiLoading) return;
+
+  const userMessage = question.trim();
+
+  setAiMessages((prev) => [
+    ...prev,
+    {
+      role: "user",
+      content: userMessage,
+    },
+  ]);
+
+  setAiMessage("");
+  setAiLoading(true);
+
+  try {
+    const response = await axios.post(
+      `${API_URL}/ai/chat`,
+      {
+        message: userMessage,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    setAiMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content: response.data.reply,
+      },
+    ]);
+  } catch (error) {
+    console.error("AI error:", error);
+
+    setAiMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content:
+          error.response?.data?.message ||
+          "Unable to process your request. Please try again.",
+      },
+    ]);
+  } finally {
+    setAiLoading(false);
+  }
+};
 
   // Logout
   const handleLogout = () => {
@@ -770,7 +828,333 @@ function Dashboard() {
         </div>
 
       )}
+      {/* AI Assistant Button */}
+<button
+  onClick={() => setAiOpen(true)}
+  className="
+    fixed
+    bottom-6
+    right-6
+    z-40
+    flex
+    items-center
+    gap-3
+    rounded-xl
+    border
+    border-red-500/30
+    bg-zinc-900
+    px-5
+    py-4
+    text-sm
+    font-medium
+    text-white
+    shadow-2xl
+    shadow-black/50
+    transition
+    duration-200
+    hover:border-red-500/60
+    hover:bg-zinc-800
+  "
+>
+  <span
+    className="
+      flex
+      h-8
+      w-8
+      items-center
+      justify-center
+      rounded-lg
+      bg-red-600
+      font-semibold
+    "
+  >
+    AI
+  </span>
 
+  DriveCore Assistant
+</button>
+
+
+{/* AI Assistant Panel */}
+{aiOpen && (
+  <div
+    className="
+      fixed
+      inset-0
+      z-50
+      flex
+      items-end
+      justify-end
+      bg-black/40
+      p-4
+      backdrop-blur-sm
+      sm:p-6
+    "
+  >
+    <div
+      className="
+        flex
+        h-[700px]
+        max-h-[90vh]
+        w-full
+        max-w-xl
+        flex-col
+        overflow-hidden
+        rounded-2xl
+        border
+        border-white/10
+        bg-zinc-950
+        shadow-2xl
+      "
+    >
+      {/* Header */}
+      <div
+        className="
+          flex
+          items-center
+          justify-between
+          border-b
+          border-white/10
+          bg-zinc-900/70
+          px-6
+          py-5
+        "
+      >
+        <div className="flex items-center gap-4">
+          <div
+            className="
+              flex
+              h-11
+              w-11
+              items-center
+              justify-center
+              rounded-xl
+              bg-red-600
+              text-sm
+              font-bold
+              text-white
+            "
+          >
+            AI
+          </div>
+
+          <div>
+            <h2 className="text-base font-semibold text-white">
+              DriveCore AI Assistant
+            </h2>
+
+            <p className="mt-1 text-xs text-zinc-400">
+              Ask questions about your inventory
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setAiOpen(false)}
+          className="
+            flex
+            h-9
+            w-9
+            items-center
+            justify-center
+            rounded-lg
+            text-zinc-400
+            transition
+            hover:bg-white/10
+            hover:text-white
+          "
+        >
+          ×
+        </button>
+      </div>
+
+
+      {/* Chat Area */}
+      <div
+        className="
+          flex-1
+          space-y-5
+          overflow-y-auto
+          px-5
+          py-6
+        "
+      >
+        {aiMessages.length === 0 && (
+          <div className="flex h-full flex-col justify-center">
+
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold text-white">
+                Inventory Intelligence
+              </h3>
+
+              <p className="mt-2 max-w-md text-sm leading-6 text-zinc-400">
+                Ask DriveCore AI about vehicle availability,
+                stock levels, categories, pricing, and your
+                dealership inventory.
+              </p>
+            </div>
+
+
+            {/* Suggested Questions */}
+            <div className="grid gap-3">
+              {[
+                "Which vehicles have low stock?",
+                "Show me all vehicles currently in inventory",
+                "Which vehicles are out of stock?",
+                "Give me an inventory summary",
+              ].map((question) => (
+                <button
+                  key={question}
+                  onClick={() => handleAskAI(question)}
+                  className="
+                    rounded-xl
+                    border
+                    border-white/10
+                    bg-white/[0.03]
+                    px-4
+                    py-4
+                    text-left
+                    text-sm
+                    text-zinc-300
+                    transition
+                    hover:border-red-500/40
+                    hover:bg-red-500/5
+                    hover:text-white
+                  "
+                >
+                  {question}
+                </button>
+              ))}
+            </div>
+
+          </div>
+        )}
+
+
+        {/* Chat Messages */}
+        {aiMessages.map((message, index) => (
+          <div
+            key={index}
+            className={`
+              flex
+              ${
+                message.role === "user"
+                  ? "justify-end"
+                  : "justify-start"
+              }
+            `}
+          >
+            <div
+              className={`
+                max-w-[85%]
+                whitespace-pre-line
+                rounded-2xl
+                px-4
+                py-3
+                text-sm
+                leading-6
+                ${
+                  message.role === "user"
+                    ? "bg-red-600 text-white"
+                    : "border border-white/10 bg-zinc-900 text-zinc-200"
+                }
+              `}
+            >
+              {message.content}
+            </div>
+          </div>
+        ))}
+
+
+        {/* Loading */}
+        {aiLoading && (
+          <div className="flex justify-start">
+            <div
+              className="
+                rounded-2xl
+                border
+                border-white/10
+                bg-zinc-900
+                px-4
+                py-3
+                text-sm
+                text-zinc-400
+              "
+            >
+              Analyzing your inventory...
+            </div>
+          </div>
+        )}
+      </div>
+
+
+      {/* Input */}
+      <div
+        className="
+          border-t
+          border-white/10
+          bg-zinc-950
+          p-4
+        "
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleAskAI();
+          }}
+          className="flex gap-3"
+        >
+          <input
+            type="text"
+            value={aiMessage}
+            onChange={(e) => setAiMessage(e.target.value)}
+            placeholder="Ask about your inventory..."
+            disabled={aiLoading}
+            className="
+              flex-1
+              rounded-xl
+              border
+              border-white/10
+              bg-white/5
+              px-4
+              py-3
+              text-sm
+              text-white
+              outline-none
+              transition
+              placeholder:text-zinc-500
+              focus:border-red-500/60
+              focus:ring-2
+              focus:ring-red-500/10
+              disabled:opacity-50
+            "
+          />
+
+          <button
+            type="submit"
+            disabled={!aiMessage.trim() || aiLoading}
+            className="
+              rounded-xl
+              bg-red-600
+              px-5
+              py-3
+              text-sm
+              font-medium
+              text-white
+              transition
+              hover:bg-red-500
+              disabled:cursor-not-allowed
+              disabled:opacity-40
+            "
+          >
+            Send
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+)}
     </div>
   );
 }
